@@ -143,6 +143,14 @@ const Menuitems = [
     href: '/audiencias',
     roles: ['USER', 'ADMIN'],
   }
+  ,
+  {
+    id: uniqueId(),
+    title: 'Advogados Prioritarios',
+    icon: IconUserPlus,
+    href: '/advogados-prioritarios',
+    roles: ['USER', 'ADMIN'],
+  }
 ];
 
 export default Menuitems;

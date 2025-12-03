@@ -32,6 +32,7 @@ const EscalarAvaliador = lazy(() => import("../pages/escala/EscalarAvaliador"));
 const Pautas = lazy(() => import("../pages/pautas/Pautas"));
 const DetalhesPauta = lazy(() => import("../pages/pautas/DetalhesPauta"));
 const Audiencias = lazy(() => import("../pages/audiencias/Audiencias"));
+const AdvogadosPrioritarios = lazy(() => import("../pages/audiencias/AdvogadosPrioritarios"));
 const Avaliadores = lazy(() => import("../pages/equipe/Avaliadores"));
 
 const Router = [
@@ -64,6 +65,7 @@ const Router = [
       { path: '/pautas', exact: true, element: <Pautas /> },
       { path: '/pautas/:id', exact: true, element: <DetalhesPauta /> },
       { path: '/audiencias', exact: true, element: <Audiencias /> },
+      { path: '/advogados-prioritarios', exact: true, element: <AdvogadosPrioritarios /> },
       { path: '/sample-page', exact: true, element: <SamplePage /> },
       { path: '/icons', exact: true, element: <Icons /> },
       { path: '/ui/typography', exact: true, element: <TypographyPage /> },
