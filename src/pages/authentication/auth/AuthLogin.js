@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -17,13 +17,21 @@ import CustomTextField from '../../../components/forms/theme-elements/CustomText
 
 const AuthLogin = ({ title, subtitle, subtext }) => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, isAuthenticated } = useAuth();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [rememberMe, setRememberMe] = useState(true);
+    const [loginSuccess, setLoginSuccess] = useState(false);
+
+    // Navegar quando isAuthenticated mudar para true após login bem-sucedido
+    useEffect(() => {
+        if (loginSuccess && isAuthenticated) {
+            navigate('/pautas');
+        }
+    }, [loginSuccess, isAuthenticated, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -38,10 +46,9 @@ const AuthLogin = ({ title, subtitle, subtext }) => {
         
         try {
             await login(email, password);
-            navigate('/pautas');
+            setLoginSuccess(true);
         } catch (err) {
             setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
-        } finally {
             setLoading(false);
         }
     };
