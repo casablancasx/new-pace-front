@@ -22,7 +22,7 @@ import {
   IconButton,
   Autocomplete,
 } from '@mui/material';
-import { IconFilterOff, IconSearch, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconFilterOff, IconSearch, IconPlus, IconTrash, IconAlertTriangle } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import advogadoService from '../../services/advogadoService';
@@ -79,6 +79,11 @@ const AdvogadosPrioritarios = () => {
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Estado do Dialog de Confirmação de Exclusão
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [advogadoParaDeletar, setAdvogadoParaDeletar] = useState(null);
+  const [deletando, setDeletando] = useState(false);
 
   const buscar = useCallback(async () => {
     setLoading(true);
@@ -166,16 +171,38 @@ const AdvogadosPrioritarios = () => {
     }
   };
 
-  const handleDeletar = async (advogadoId) => {
-    if (!window.confirm('Tem certeza que deseja excluir este advogado?')) return;
+  const handleOpenDeleteDialog = (advogado) => {
+    setAdvogadoParaDeletar(advogado);
+    setOpenDeleteDialog(true);
+  };
 
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setAdvogadoParaDeletar(null);
+  };
+
+  const handleConfirmarDelete = async () => {
+    if (!advogadoParaDeletar) return;
+
+    setDeletando(true);
     try {
-      await advogadoService.deletar(advogadoId);
-      setSnackbar({ open: true, message: 'Advogado excluído com sucesso!', severity: 'success' });
+      await advogadoService.deletar(advogadoParaDeletar.advogadoId);
+      setSnackbar({
+        open: true,
+        message: `Advogado ${advogadoParaDeletar.nome} excluído com sucesso!`,
+        severity: 'success',
+      });
+      handleCloseDeleteDialog();
       buscar();
     } catch (err) {
       console.error('Erro ao excluir advogado:', err);
-      setSnackbar({ open: true, message: err.message || 'Erro ao excluir advogado', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: err.message || 'Erro ao excluir advogado',
+        severity: 'error',
+      });
+    } finally {
+      setDeletando(false);
     }
   };
 
@@ -281,7 +308,7 @@ const AdvogadosPrioritarios = () => {
                           <IconButton
                             color="error"
                             size="small"
-                            onClick={() => handleDeletar(a.advogadoId)}
+                            onClick={() => handleOpenDeleteDialog(a)}
                             title="Excluir advogado"
                           >
                             <IconTrash size={18} />
@@ -379,6 +406,72 @@ const AdvogadosPrioritarios = () => {
             disabled={salvando}
           >
             {salvando ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        TransitionComponent={Transition}
+        keepMounted
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1, textAlign: 'center' }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              backgroundColor: 'error.light',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <IconAlertTriangle size={32} color="#d32f2f" />
+          </Box>
+          <Typography variant="h5" fontWeight={600}>
+            Confirmar Exclusão
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center', pb: 2 }}>
+          <Typography variant="body1" color="textSecondary">
+            Deseja realmente remover o advogado
+          </Typography>
+          <Typography variant="h6" fontWeight={600} sx={{ mt: 1 }}>
+            {advogadoParaDeletar?.nome}
+          </Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+            Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'center', gap: 2 }}>
+          <Button
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            color="inherit"
+            disabled={deletando}
+            sx={{ minWidth: 100 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmarDelete}
+            variant="contained"
+            color="error"
+            disabled={deletando}
+            sx={{ minWidth: 100 }}
+          >
+            {deletando ? <CircularProgress size={24} color="inherit" /> : 'Excluir'}
           </Button>
         </DialogActions>
       </Dialog>
