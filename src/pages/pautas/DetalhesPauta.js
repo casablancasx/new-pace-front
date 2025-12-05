@@ -38,7 +38,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 const respostaAnaliseOptions = [
   { value: 'ANALISE_PENDENTE', label: 'Análise Pendente' },
   { value: 'COMPARECIMENTO', label: 'Comparecimento' },
-  { value: 'NAO_COMPARECER', label: 'Não Comparecer' },
+  { value: 'NAO_COMPARECIMENTO', label: 'Não Comparecer' },
   { value: 'CANCELADA', label: 'Cancelada' },
 ];
 
