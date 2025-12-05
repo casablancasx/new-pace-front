@@ -149,7 +149,7 @@ const Menuitems = [
     title: 'Advogados Prioritarios',
     icon: IconUserPlus,
     href: '/advogados-prioritarios',
-    roles: ['USER', 'ADMIN'],
+    roles: ['ADMIN'],
   }
 ];
 

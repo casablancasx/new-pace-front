@@ -8,7 +8,8 @@ const escalaService = {
    */
   async escalarAvaliadores(dados) {
     const payload = {
-      setorOrigemId: dados.setorResponsavel?.id || null,
+      setorOrigemId: dados.setorOrigem?.id || null,
+      setorResponsavelId: dados.setorResponsavel?.id || null,
       especieTarefaId: dados.especieTarefa?.id || null,
       dataInicio: dados.dataInicio || null,
       dataFim: dados.dataFim || null,
@@ -41,7 +42,8 @@ const escalaService = {
    */
   async escalarPautistas(dados) {
     const payload = {
-      setorOrigemId: dados.setorResponsavel?.id || null,
+      setorOrigemId: dados.setorOrigem?.id || null,
+      setorResponsavelId: dados.setorResponsavel?.id || null,
       especieTarefaId: dados.especieTarefa?.id || null,
       dataInicio: dados.dataInicio || null,
       dataFim: dados.dataFim || null,

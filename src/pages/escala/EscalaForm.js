@@ -73,6 +73,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [formData, setFormData] = useState({
     especieTarefa: null,
     unidade: null,
+    setorOrigem: null,
     setorResponsavel: null,
     dataInicio: '',
     dataFim: '',
@@ -103,6 +104,11 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [unidadeOptions, setUnidadeOptions] = useState([]);
   const [unidadeSearchTerm, setUnidadeSearchTerm] = useState('');
   const [unidadeLoading, setUnidadeLoading] = useState(false);
+
+  // Estados para busca de setor origem
+  const [setorOrigemOptions, setSetorOrigemOptions] = useState([]);
+  const [setorOrigemSearchTerm, setSetorOrigemSearchTerm] = useState('');
+  const [setorOrigemLoading, setSetorOrigemLoading] = useState(false);
 
   // Estados para busca de setor responsável
   const [setorOptions, setSetorOptions] = useState([]);
@@ -167,7 +173,31 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     return () => clearTimeout(timeoutId);
   }, [unidadeSearchTerm]);
 
-  // Buscar setores com debounce (depende da unidade selecionada)
+  // Buscar setor origem com debounce (depende da unidade selecionada)
+  useEffect(() => {
+    const buscar = async () => {
+      if (setorOrigemSearchTerm.length < 2 || !formData.unidade?.id) {
+        setSetorOrigemOptions([]);
+        return;
+      }
+
+      setSetorOrigemLoading(true);
+      try {
+        const results = await sapiensService.buscarSetor(setorOrigemSearchTerm, formData.unidade.id);
+        setSetorOrigemOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar setores origem:', err);
+        setSetorOrigemOptions([]);
+      } finally {
+        setSetorOrigemLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(buscar, 500);
+    return () => clearTimeout(timeoutId);
+  }, [setorOrigemSearchTerm, formData.unidade]);
+
+  // Buscar setores responsáveis com debounce (depende da unidade selecionada)
   useEffect(() => {
     const buscar = async () => {
       if (setorSearchTerm.length < 2 || !formData.unidade?.id) {
@@ -191,9 +221,11 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     return () => clearTimeout(timeoutId);
   }, [setorSearchTerm, formData.unidade]);
 
-  // Limpar setor quando a unidade mudar
+  // Limpar setores quando a unidade mudar
   useEffect(() => {
-    setFormData(prev => ({ ...prev, setorResponsavel: null }));
+    setFormData(prev => ({ ...prev, setorOrigem: null, setorResponsavel: null }));
+    setSetorOrigemOptions([]);
+    setSetorOrigemSearchTerm('');
     setSetorOptions([]);
     setSetorSearchTerm('');
   }, [formData.unidade?.id]);
@@ -402,6 +434,60 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                   endAdornment: (
                     <>
                       {unidadeLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+          />
+
+          {/* Setor Origem - Autocomplete com busca na API do Sapiens */}
+          <Autocomplete
+            options={setorOrigemOptions}
+            getOptionLabel={(option) => option.nome || ''}
+            value={formData.setorOrigem}
+            loading={setorOrigemLoading}
+            disabled={!formData.unidade}
+            onChange={(event, newValue) => {
+              setFormData({ ...formData, setorOrigem: newValue });
+            }}
+            onInputChange={(event, newInputValue) => {
+              setSetorOrigemSearchTerm(newInputValue);
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            noOptionsText={!formData.unidade ? "Selecione uma unidade primeiro" : setorOrigemSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum setor encontrado"}
+            renderOption={(props, option) => {
+              const { key, ...otherProps } = props;
+              return (
+                <Box
+                  component="li"
+                  key={key}
+                  {...otherProps}
+                  sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'flex-start !important',
+                    py: 1.5,
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>{option.nome}</span>
+                  <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.unidadeNome}</span>
+                </Box>
+              );
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Setor Origem"
+                variant="outlined"
+                fullWidth
+                placeholder="Digite para buscar..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {setorOrigemLoading ? <CircularProgress color="inherit" size={20} /> : null}
                       {params.InputProps.endAdornment}
                     </>
                   ),
