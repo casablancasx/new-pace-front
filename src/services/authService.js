@@ -1,14 +1,28 @@
 import api from './api';
+import { jwtDecode } from 'jwt-decode';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080') + '/pace/api';
 
 const authService = {
-  async login(email, password) {
-    const response = await api.post('/auth/login', { email, password });
+  async login(username, password) {
+    const response = await api.post('/auth/login', { username, password });
     
     if (response.token) {
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      try {
+        const decoded = jwtDecode(response.token);
+        const user = {
+            ...decoded,
+            name: decoded.nome, // Map 'nome' from token to 'name' for consistency if needed
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // Return response combined with user for AuthContext
+        return { ...response, user };
+      } catch (e) {
+        console.error("Error decoding token", e);
+      }
     }
     
     return response;

@@ -20,6 +20,7 @@
     "@svgr/rollup": "^8.1.0",
     "@tabler/icons-react": "^3.33.0",
     "apexcharts": "^4.7.0",
+    "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",
