@@ -4,11 +4,9 @@ import PageContainer from 'src/components/container/PageContainer';
 
 // components
 import SalesOverview from './components/SalesOverview';
-import YearlyBreakup from './components/YearlyBreakup';
 import RecentTransactions from './components/RecentTransactions';
 import ProductPerformance from './components/ProductPerformance';
 import Blog from './components/Blog';
-import MonthlyEarnings from './components/MonthlyEarnings';
 
 
 const Dashboard = () => {
@@ -19,23 +17,9 @@ const Dashboard = () => {
           <Grid
             size={{
               xs: 12,
-              lg: 8
+              lg: 12
             }}>
             <SalesOverview />
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              lg: 4
-            }}>
-            <Grid container spacing={3}>
-              <Grid size={12}>
-                <YearlyBreakup />
-              </Grid>
-              <Grid size={12}>
-                <MonthlyEarnings />
-              </Grid>
-            </Grid>
           </Grid>
           <Grid
             size={{
