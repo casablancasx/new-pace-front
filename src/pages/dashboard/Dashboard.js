@@ -5,7 +5,7 @@ import PageContainer from 'src/components/container/PageContainer';
 // components
 import PautaOverview from './components/PautaOverview';
 import RecentTransactions from './components/RecentTransactions';
-import ProductPerformance from './components/ProductPerformance';
+import ContestacaoOverview from './components/ContestacaoOverview';
 import Blog from './components/Blog';
 
 
@@ -33,7 +33,7 @@ const Dashboard = () => {
               xs: 12,
               lg: 8
             }}>
-            <ProductPerformance />
+            <ContestacaoOverview />
           </Grid>
           <Grid size={12}>
             <Blog />
