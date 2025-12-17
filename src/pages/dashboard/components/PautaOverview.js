@@ -5,7 +5,7 @@ import DashboardCard from '../../../components/shared/DashboardCard';
 import Chart from 'react-apexcharts';
 import api from '../../../services/api';
 
-const SalesOverview = () => {
+const PautaOverview = () => {
     // theme
     const theme = useTheme();
     const primary = theme.palette.primary.main;
@@ -155,4 +155,4 @@ const SalesOverview = () => {
     );
 };
 
-export default SalesOverview;
+export default PautaOverview;
