@@ -42,5 +42,8 @@ export default defineConfig({
     //   exportAsDefault: true
     // })],
 
-    plugins: [svgr(), react()],
+    plugins: [svgr({ 
+        throwIfNamespace: false,
+        svgo: false 
+    }), react()],
 });

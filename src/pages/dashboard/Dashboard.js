@@ -6,7 +6,7 @@ import PageContainer from 'src/components/container/PageContainer';
 import PautaOverview from './components/PautaOverview';
 import RecentTransactions from './components/RecentTransactions';
 import ContestacaoOverview from './components/ContestacaoOverview';
-import Blog from './components/Blog';
+import BrazilMapOverview from './components/BrazilMapOverview';
 
 
 const Dashboard = () => {
@@ -36,7 +36,7 @@ const Dashboard = () => {
             <ContestacaoOverview />
           </Grid>
           <Grid size={12}>
-            <Blog />
+            <BrazilMapOverview />
           </Grid>
         </Grid>
       </Box>
