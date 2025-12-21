@@ -114,8 +114,8 @@ const DetalhesPauta = () => {
   // Handlers do popup
   const handleRowClick = (audiencia) => {
     setSelectedAudiencia(audiencia);
-    setRespostaAnalise(audiencia.statusComparecimento || '');
-    setObservacao(audiencia.analise || '');
+    setRespostaAnalise(audiencia.analiseAvaliador || '');
+    setObservacao(audiencia.observacao || '');
     setOpenDialog(true);
   };
 
@@ -141,7 +141,7 @@ const DetalhesPauta = () => {
       setAudiencias((prev) =>
         prev.map((a) =>
           a.audienciaId === selectedAudiencia.audienciaId
-            ? { ...a, statusComparecimento: audienciaAtualizada.statusComparecimento, analise: audienciaAtualizada.analise }
+            ? { ...a, analiseAvaliador: audienciaAtualizada.analiseAvaliador, observacao: audienciaAtualizada.observacao }
             : a
         )
       );
@@ -166,14 +166,6 @@ const DetalhesPauta = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
-  };
-
-  const getPrioridadeColor = (isPrioritaria) => {
-    return isPrioritaria ? 'error.main' : 'primary.main';
-  };
-
-  const getPrioridadeLabel = (isPrioritaria) => {
-    return isPrioritaria ? 'Alta' : 'Normal';
   };
 
   // Loading state
@@ -257,18 +249,10 @@ const DetalhesPauta = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <Typography variant="subtitle2" color="textSecondary">
-                Pautista
+                UF
               </Typography>
               <Typography variant="body1" fontWeight={500}>
-                {pauta.pautista || '-'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Typography variant="subtitle2" color="textSecondary">
-                Avaliador
-              </Typography>
-              <Typography variant="body1" fontWeight={500}>
-                {pauta.avaliador || '-'}
+                {pauta.uf || '-'}
               </Typography>
             </Grid>
           </Grid>
@@ -281,7 +265,6 @@ const DetalhesPauta = () => {
           <Table
             aria-label="tabela de audiências"
             sx={{
-              whiteSpace: 'nowrap',
               mt: 2,
             }}
           >
@@ -289,7 +272,7 @@ const DetalhesPauta = () => {
               <TableRow>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Hora
+                    Horário
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -297,24 +280,19 @@ const DetalhesPauta = () => {
                     Processo
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 150 }}>
                   <Typography variant="subtitle2" fontWeight={600}>
                     Nome da Parte
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 150 }}>
                   <Typography variant="subtitle2" fontWeight={600}>
                     Advogados
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 200 }}>
                   <Typography variant="subtitle2" fontWeight={600}>
                     Assunto
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    Classe Judicial
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -324,12 +302,12 @@ const DetalhesPauta = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Prioridade
+                    Análise
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 150 }}>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Status
+                    Observação
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -342,14 +320,24 @@ const DetalhesPauta = () => {
                     onClick={() => handleRowClick(audiencia)}
                     sx={{
                       cursor: 'pointer',
+                      backgroundColor: audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
+                      borderLeft: audiencia.novaAudiencia ? '4px solid #1976d2' : 'none',
                       '&:hover': {
-                        backgroundColor: 'action.hover',
+                        backgroundColor: audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.15)' : 'action.hover',
                       },
                     }}
                   >
                     <TableCell>
                       <Typography sx={{ fontSize: '15px', fontWeight: '500' }}>
-                        {audiencia.hora}
+                        {audiencia.horario}
+                        {audiencia.novaAudiencia && (
+                          <Chip
+                            size="small"
+                            label="Nova"
+                            color="info"
+                            sx={{ ml: 1, height: 20, fontSize: '0.7rem' }}
+                          />
+                        )}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -357,24 +345,19 @@ const DetalhesPauta = () => {
                         {audiencia.numeroProcesso}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ maxWidth: 200, wordWrap: 'break-word', whiteSpace: 'normal' }}>
                       <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                        {audiencia.nomeParte}
+                        {audiencia.nomeParte?.trim() || '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ maxWidth: 200, wordWrap: 'break-word', whiteSpace: 'normal' }}>
                       <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
                         {audiencia.advogados?.join(', ') || '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ maxWidth: 250, wordWrap: 'break-word', whiteSpace: 'normal' }}>
                       <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
                         {audiencia.assunto}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                        {audiencia.classeJudicial}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -384,39 +367,29 @@ const DetalhesPauta = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        sx={{
-                          px: '4px',
-                          backgroundColor: getPrioridadeColor(audiencia.isPrioritaria),
-                          color: '#fff',
-                        }}
                         size="small"
-                        label={getPrioridadeLabel(audiencia.isPrioritaria)}
+                        label={audiencia.analiseAvaliador || 'Pendente'}
+                        color={
+                          audiencia.analiseAvaliador === 'Comparecimento'
+                            ? 'success'
+                            : audiencia.analiseAvaliador === 'Não Comparecer'
+                            ? 'error'
+                            : audiencia.analiseAvaliador === 'Cancelada'
+                            ? 'warning'
+                            : 'default'
+                        }
                       />
                     </TableCell>
-                    <TableCell>
-                      {audiencia.statusComparecimento ? (
-                        <Chip
-                          size="small"
-                          label={audiencia.statusComparecimento}
-                          color={
-                            audiencia.statusComparecimento === 'COMPARECIMENTO'
-                              ? 'success'
-                              : audiencia.statusComparecimento === 'CANCELADA'
-                              ? 'warning'
-                              : 'default'
-                          }
-                        />
-                      ) : (
-                        <Typography color="textSecondary" variant="subtitle2">
-                          Pendente
-                        </Typography>
-                      )}
+                    <TableCell sx={{ maxWidth: 200, wordWrap: 'break-word', whiteSpace: 'normal' }}>
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {audiencia.observacao || '-'}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Typography color="textSecondary" sx={{ py: 3 }}>
                       Nenhuma audiência encontrada
                     </Typography>
