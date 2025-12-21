@@ -281,7 +281,6 @@ const Pautas = () => {
               <Table
                 aria-label="tabela de pautas"
                 sx={{
-                  whiteSpace: 'nowrap',
                   mt: 2,
                 }}
               >
@@ -297,9 +296,14 @@ const Pautas = () => {
                         Data
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ minWidth: 200 }}>
                       <Typography variant="subtitle2" fontWeight={600}>
                         Órgão Julgador
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        UF
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -314,12 +318,7 @@ const Pautas = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Pautista
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        Avaliador
+                        Criado Em
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -338,9 +337,14 @@ const Pautas = () => {
                             {pauta.data}
                           </Typography>
                         </TableCell>
+                        <TableCell sx={{ maxWidth: 250, wordWrap: 'break-word', whiteSpace: 'normal' }}>
+                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                            {pauta.orgaoJulgador?.nome || '-'}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {pauta.orgaoJulgador}
+                            {pauta.orgaoJulgador?.uf?.sigla || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -350,17 +354,12 @@ const Pautas = () => {
                         </TableCell>
                         <TableCell>
                           <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {pauta.sala}
+                            {pauta.sala?.nome || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {pauta.pautista || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {pauta.avaliador || '-'}
+                            {pauta.criadoEm ? new Date(pauta.criadoEm).toLocaleString('pt-BR') : '-'}
                           </Typography>
                         </TableCell>
                       </ClickableTableRow>
