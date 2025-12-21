@@ -4,7 +4,7 @@ import PageContainer from 'src/components/container/PageContainer';
 
 // components
 import PautaOverview from './components/PautaOverview';
-import RecentTransactions from './components/RecentTransactions';
+import TotaisCards from './components/TotaisCards';
 import ContestacaoOverview from './components/ContestacaoOverview';
 import BrazilMapOverview from './components/BrazilMapOverview';
 
@@ -26,7 +26,7 @@ const Dashboard = () => {
               xs: 12,
               lg: 4
             }}>
-            <RecentTransactions />
+            <TotaisCards />
           </Grid>
           <Grid
             size={{
