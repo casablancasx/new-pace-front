@@ -310,6 +310,16 @@ const DetalhesPauta = () => {
                     Observação
                   </Typography>
                 </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Pautista
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Avaliador
+                  </Typography>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -385,11 +395,21 @@ const DetalhesPauta = () => {
                         {audiencia.observacao || '-'}
                       </Typography>
                     </TableCell>
+                    <TableCell>
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {audiencia.pautista || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {audiencia.avaliador || '-'}
+                      </Typography>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Typography color="textSecondary" sx={{ py: 3 }}>
                       Nenhuma audiência encontrada
                     </Typography>
