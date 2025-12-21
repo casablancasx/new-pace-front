@@ -191,9 +191,6 @@ const SidebarItems = () => {
       <List sx={{ mt: 2 }}>
         {renderMenuItems(Menuitems, pathDirect, userRole)}
       </List>
-
-      {/* Upgrade Section */}
-      <Upgrade />
     </SidebarContainer>
   );
 };

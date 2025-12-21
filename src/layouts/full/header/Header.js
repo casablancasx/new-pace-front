@@ -7,7 +7,6 @@ import {
   Stack,
   IconButton,
   Badge,
-  Button,
   Menu,
   MenuItem,
   Typography,
@@ -15,13 +14,9 @@ import {
 import PropTypes from 'prop-types'
 
 // components
-import Profile from './Profile'
 import { IconBellRinging, IconMenu } from '@tabler/icons-react'
-import useAuth from '../../../hooks/useAuth'
 
 const Header = (props) => {
-  const { user } = useAuth();
-  
   const AppBarStyled = styled(AppBar)(({ theme }) => ({
     boxShadow: 'none',
     background: theme.palette.background.paper,
@@ -85,18 +80,6 @@ const Header = (props) => {
           <IconMenu width='20' height='20' />
         </IconButton>
 
-        {/* Nome do usuário à esquerda */}
-        <Typography 
-          variant="subtitle1" 
-          fontWeight={600}
-          sx={{ 
-            ml: 2,
-            display: { xs: 'none', sm: 'block' }
-          }}
-        >
-          {user?.nome || 'Usuário'}
-        </Typography>
-
         <Box flexGrow={1} />
         
         <Stack spacing={1} direction='row' alignItems='center'>
@@ -139,9 +122,6 @@ const Header = (props) => {
               <Typography variant='body1'>Item 2</Typography>
             </MenuItem>
           </Menu>
-
-          {/* Perfil */}
-          <Profile />
         </Stack>
       </ToolbarStyled>
     </AppBarStyled>

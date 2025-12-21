@@ -1,5 +1,6 @@
 import { useMediaQuery, Box, Drawer } from '@mui/material';
 import SidebarItems from './SidebarItems';
+import Upgrade from './Upgrade';
 import Scrollbar from "../../../components/custom-scroll/Scrollbar";
 
 const Sidebar = (props) => {
@@ -32,6 +33,8 @@ const Sidebar = (props) => {
                 top: 0,
                 transition: 'transform 0.3s ease-in-out',
                 transform: props.isSidebarOpen ? 'translateX(0)' : `translateX(-${sidebarWidth})`,
+                display: 'flex',
+                flexDirection: 'column',
               },
             }
           }}
@@ -39,14 +42,13 @@ const Sidebar = (props) => {
           {/* ------------------------------------------- */}
           {/* Sidebar Box */}
           {/* ------------------------------------------- */}
-          <Scrollbar sx={{ height: "100%" }}>
-            <Box>
-              {/* ------------------------------------------- */}
-              {/* Sidebar Items */}
-              {/* ------------------------------------------- */}
-              <SidebarItems />
-            </Box>
+          <Scrollbar sx={{ flex: 1 }}>
+            <SidebarItems />
           </Scrollbar>
+          {/* ------------------------------------------- */}
+          {/* User Profile - Fixed at bottom */}
+          {/* ------------------------------------------- */}
+          <Upgrade />
         </Drawer >
       </Box >
     );
@@ -62,16 +64,22 @@ const Sidebar = (props) => {
           sx: {
             width: sidebarWidth,
             boxShadow: (theme) => theme.shadows[8],
+            display: 'flex',
+            flexDirection: 'column',
           },
         }
       }}
     >
-      <Scrollbar sx={{ height: "100%" }}>
+      <Scrollbar sx={{ flex: 1 }}>
         {/* ------------------------------------------- */}
         {/* Sidebar For Mobile */}
         {/* ------------------------------------------- */}
         <SidebarItems />
       </Scrollbar>
+      {/* ------------------------------------------- */}
+      {/* User Profile - Fixed at bottom */}
+      {/* ------------------------------------------- */}
+      <Upgrade />
     </Drawer>
   );
 };
