@@ -78,7 +78,6 @@ const Menuitems = [
     icon: IconLayoutDashboard,
     href: '/dashboard',
     roles: ['USER', 'ADMIN'],
-    disabled: true,
   },
   {
     id: uniqueId(),

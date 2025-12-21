@@ -12,7 +12,7 @@ const ContestacaoOverview = () => {
     const secondary = theme.palette.secondary.main;
 
     // states
-    const [viewMode, setViewMode] = useState('month'); // 'month' | 'year'
+    const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
     const [month, setMonth] = useState('8'); // Default to August
     const [year, setYear] = useState('2025');
     const [chartData, setChartData] = useState({

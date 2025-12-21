@@ -14,7 +14,9 @@ const authService = {
         const decoded = jwtDecode(response.token);
         const user = {
             ...decoded,
-            name: decoded.nome, // Map 'nome' from token to 'name' for consistency if needed
+            name: decoded.nome,
+            // Usar role da resposta direta do login (prioridade) ou do token decodificado
+            role: response.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('USER'))) || 'USER',
         };
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -49,6 +51,22 @@ const authService = {
     
     if (data.token) {
       localStorage.setItem('token', data.token);
+      
+      // Atualizar user com a nova role se vier na resposta
+      try {
+        const decoded = jwtDecode(data.token);
+        const currentUser = this.getUser();
+        const user = {
+          ...decoded,
+          name: decoded.nome,
+          // Usar role da resposta direta (prioridade) ou do token decodificado ou manter a atual
+          role: data.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('USER'))) || currentUser?.role || 'USER',
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+      } catch (e) {
+        console.error("Error decoding refreshed token", e);
+      }
+      
       return data.token;
     }
     
