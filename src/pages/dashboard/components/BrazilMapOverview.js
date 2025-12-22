@@ -9,7 +9,7 @@ const BrazilMapOverview = () => {
     const theme = useTheme();
     const [year, setYear] = useState('2025');
     const [month, setMonth] = useState('8');
-    const [viewMode, setViewMode] = useState('month'); // 'month' | 'year'
+    const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
     const [metricMode, setMetricMode] = useState('general'); // 'general' | 'priority'
     const [mapData, setMapData] = useState({});
     const [hoveredState, setHoveredState] = useState(null);
@@ -28,7 +28,7 @@ const BrazilMapOverview = () => {
             }
 
             const response = await api.get(`/dashboard/map-overview?${params.toString()}`);
-            const rawData = response.data.data;
+            const rawData = response.data || response;
 
             // Transform array to object map: 'BR-UF' -> data
             const transformedData = {};
@@ -55,21 +55,22 @@ const BrazilMapOverview = () => {
         const isPriority = metricMode === 'priority';
         
         if (isPriority) {
-            // Frontend managed priority logic based on 'audiencias'
-            // Calculate intensity relative to a threshold or max
-            // For now, using static thresholds for demonstration
+            // Priority mode - based on audiencias count
             const value = data.audiencias;
             
-            if (value > 1000) return '#b71c1c'; // Critical (Dark Red)
-            if (value > 100) return '#f44336'; // High (Red)
-            if (value > 50) return '#e57373'; // Medium (Light Red)
-            return '#ffcdd2'; // Low (Very Light Red)
+            if (value >= 40) return '#b71c1c'; // Critical (Dark Red)
+            if (value >= 20) return '#f44336'; // High (Red)
+            if (value >= 10) return '#e57373'; // Medium (Light Red)
+            if (value >= 1) return '#ffcdd2'; // Low (Very Light Red)
+            return '#e0e0e0';
         } else {
+            // General mode - based on pautas + audiencias
             const value = data.pautas + data.audiencias;
-            if (value > 200) return theme.palette.primary.dark;
-            if (value > 100) return theme.palette.primary.main;
-            if (value > 50) return theme.palette.primary.light;
-            return theme.palette.primary.light; 
+            if (value >= 40) return theme.palette.primary.dark;
+            if (value >= 20) return theme.palette.primary.main;
+            if (value >= 5) return theme.palette.primary.light;
+            if (value >= 1) return '#bbdefb'; // Very light blue
+            return '#e0e0e0';
         }
     };
 
