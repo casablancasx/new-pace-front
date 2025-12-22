@@ -87,6 +87,11 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
     onRemover(avaliador);
   };
 
+  // Calcular percentual de audiências analisadas
+  const percentualAnalisadas = avaliador.quantidadeTotalAudiencias > 0
+    ? Math.round((avaliador.quantidadeAudienciasAvaliadas / avaliador.quantidadeTotalAudiencias) * 100)
+    : 0;
+
   return (
     <StyledCard elevation={9}>
       <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -116,7 +121,7 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
                 whiteSpace: 'nowrap',
               }}
             >
-              {avaliador.setor?.nome || avaliador.setor}
+              {avaliador.setor?.nome || ''}
             </Typography>
             <Typography
               variant="caption"
@@ -156,7 +161,7 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
         >
           <StatBox>
             <Typography variant="h5" fontWeight={600}>
-              {avaliador.quantidadeAudiencias || 0}
+              {avaliador.quantidadeTotalAudiencias || 0}
             </Typography>
             <Typography variant="caption" color="textSecondary">
               Audiências
@@ -172,10 +177,10 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
           </StatBox>
           <StatBox>
             <Typography variant="h5" fontWeight={600}>
-              {avaliador.score || 0}
+              {avaliador.quantidadeAudienciasAvaliadas || 0}
             </Typography>
             <Typography variant="caption" color="textSecondary">
-              Score
+              Avaliadas
             </Typography>
           </StatBox>
         </Box>
@@ -187,13 +192,13 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
               Audiências Analisadas
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              {avaliador.score || 0}%
+              {percentualAnalisadas}%
             </Typography>
           </Box>
           <QualidadeProgress
             variant="determinate"
-            value={avaliador.score || 0}
-            color={(avaliador.score || 0) >= 70 ? 'success' : (avaliador.score || 0) >= 40 ? 'warning' : 'error'}
+            value={percentualAnalisadas}
+            color={percentualAnalisadas >= 70 ? 'success' : percentualAnalisadas >= 40 ? 'warning' : 'error'}
           />
         </Box>
 
@@ -219,11 +224,11 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
         {/* Footer */}
         <Box sx={{ mt: 'auto', pt: 2 }}>
           <Typography variant="caption" color="textSecondary" display="block">
-            Unidade: {avaliador.unidade?.nome || avaliador.unidade}
+            Unidade: {avaliador.unidade?.nome || ''}
           </Typography>
-          {avaliador.adicionadoPor && (
+          {avaliador.telefone && (
             <Typography variant="caption" color="textSecondary" display="block">
-              Adicionado por: {avaliador.adicionadoPor}
+              Telefone: {avaliador.telefone}
             </Typography>
           )}
         </Box>
@@ -363,7 +368,7 @@ const Avaliadores = () => {
 
     setDeleting(true);
     try {
-      await avaliadorService.remover(avaliadorParaDeletar.id);
+      await avaliadorService.remover(avaliadorParaDeletar.sapiensId);
       setSnackbar({
         open: true,
         message: `Avaliador ${avaliadorParaDeletar.nome} removido com sucesso!`,
@@ -409,7 +414,7 @@ const Avaliadores = () => {
       ) : avaliadores.length > 0 ? (
         <Grid container spacing={3} alignItems="stretch">
           {avaliadores.map((avaliador) => (
-            <Grid size={{ xs: 12, sm: 6 }} key={avaliador.id || avaliador.sapiensId}>
+            <Grid size={{ xs: 12, sm: 6 }} key={avaliador.sapiensId}>
               <AvaliadorCard avaliador={avaliador} onRemover={handleRemoverAvaliador} />
             </Grid>
           ))}

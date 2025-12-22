@@ -92,17 +92,15 @@ const sapiensService = {
     const unidade = setor?.unidade;
 
     return {
+      sapiensId: usuario?.id,
       nome: usuario?.nome || '',
       email: usuario?.email || '',
-      disponivel: true,
-      sapiensId: usuario?.id,
+      telefone: '',
       setor: {
         setorId: setor?.id,
-        nome: setor?.nome || '',
-      },
-      unidade: {
+        nomeSetor: setor?.nome || '',
         unidadeId: unidade?.id,
-        nome: unidade?.nome || '',
+        nomeUnidade: unidade?.nome || '',
       },
     };
   },

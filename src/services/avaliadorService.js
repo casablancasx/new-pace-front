@@ -2,7 +2,28 @@ import api from './api';
 
 const avaliadorService = {
   async listar(page = 0, size = 10) {
-    return api.get(`/avaliador?page=${page}&size=${size}`);
+    const response = await api.get(`/avaliador?page=${page}&size=${size}`);
+    
+    // Mapear resposta para o formato esperado pelo frontend
+    const content = (response.content || []).map(item => ({
+      sapiensId: item.sapiensId,
+      nome: item.nome,
+      email: item.email,
+      telefone: item.telefone,
+      setor: item.setor,
+      unidade: item.unidade,
+      quantidadePautas: item.quantidadePautas || 0,
+      quantidadeAudiencias: item.quantidadeAudiencias || 0,
+      disponivel: item.disponivel,
+      quantidadeAudienciasAvaliadas: item.quantidaDeAudienciasAvaliadas || 0,
+      quantidadeTotalAudiencias: item.quantidadeTotalAudiencias || 0,
+    }));
+    
+    return {
+      content,
+      totalPages: response.totalPages || 1,
+      totalElements: response.totalElements || 0,
+    };
   },
 
   /**
@@ -26,7 +47,7 @@ const avaliadorService = {
     
     // Mapear resposta para o formato esperado pelo Autocomplete
     return (response.content || []).map(item => ({
-      id: item.id || item.avaliadorId,
+      id: item.sapiensId,
       nome: item.nome,
       email: item.email,
       setor: item.setor?.nome || '',
@@ -37,12 +58,12 @@ const avaliadorService = {
     return api.post('/avaliador', avaliador);
   },
 
-  async remover(id) {
-    return api.delete(`/avaliador/${id}`);
+  async remover(sapiensId) {
+    return api.delete(`/avaliador/${sapiensId}`);
   },
 
-  async buscarPorId(id) {
-    return api.get(`/avaliador/${id}`);
+  async buscarPorId(sapiensId) {
+    return api.get(`/avaliador/${sapiensId}`);
   },
 };
 
