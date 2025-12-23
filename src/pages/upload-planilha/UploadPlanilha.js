@@ -350,12 +350,27 @@ const UploadPlanilha = () => {
                     <TableRow>
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
+                          ID
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>
                           Nome do Arquivo
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
-                          Adicionada Por
+                          Data Upload
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Pautas
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Audiências
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -367,8 +382,13 @@ const UploadPlanilha = () => {
                   </TableHead>
                   <TableBody>
                     {planilhas.length > 0 ? (
-                      planilhas.map((planilha, index) => (
-                        <TableRow key={index}>
+                      planilhas.map((planilha) => (
+                        <TableRow key={planilha.planilhaId}>
+                          <TableCell>
+                            <Typography variant="subtitle2" fontWeight={500}>
+                              {planilha.planilhaId}
+                            </Typography>
+                          </TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <IconFileSpreadsheet size={20} color="#5D87FF" />
@@ -379,8 +399,24 @@ const UploadPlanilha = () => {
                           </TableCell>
                           <TableCell>
                             <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                              {planilha.adicionadaPor}
+                              {new Date(planilha.dataUpload).toLocaleString('pt-BR')}
                             </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={planilha.pautas}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={planilha.audiencias}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell>
                             {planilha.processamentoConcluido ? (
@@ -403,7 +439,7 @@ const UploadPlanilha = () => {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={3} align="center">
+                        <TableCell colSpan={6} align="center">
                           <Typography color="textSecondary" sx={{ py: 3 }}>
                             Nenhuma planilha encontrada
                           </Typography>
