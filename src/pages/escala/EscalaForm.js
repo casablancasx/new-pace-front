@@ -5,9 +5,13 @@ import {
   Autocomplete,
   Fab,
   CircularProgress,
-  Snackbar,
-  Alert,
+  Dialog,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
 } from '@mui/material';
+import { IconCheck, IconX } from '@tabler/icons-react';
 import { IconPlayerPlay } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
@@ -72,9 +76,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
   const [formData, setFormData] = useState({
     especieTarefa: null,
-    unidade: null,
     setorOrigem: null,
-    setorResponsavel: null,
     dataInicio: '',
     dataFim: '',
     unidadesFederativas: [],
@@ -83,37 +85,15 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     pessoas: [],
   });
 
-  // Pré-selecionar a unidade do usuário logado quando o user carregar
-  useEffect(() => {
-    if (user?.unidade && !formData.unidade) {
-      const unidadePadrao = {
-        id: user.unidade.id || user.unidade.unidadeId,
-        nome: user.unidade.nome,
-        sigla: user.unidade.sigla || '',
-      };
-      setFormData(prev => ({ ...prev, unidade: unidadePadrao }));
-    }
-  }, [user]);
-
   // Estados para busca de espécie tarefa
   const [especieTarefaOptions, setEspecieTarefaOptions] = useState([]);
   const [especieTarefaSearchTerm, setEspecieTarefaSearchTerm] = useState('');
   const [especieTarefaLoading, setEspecieTarefaLoading] = useState(false);
 
-  // Estados para busca de unidade
-  const [unidadeOptions, setUnidadeOptions] = useState([]);
-  const [unidadeSearchTerm, setUnidadeSearchTerm] = useState('');
-  const [unidadeLoading, setUnidadeLoading] = useState(false);
-
   // Estados para busca de setor origem
   const [setorOrigemOptions, setSetorOrigemOptions] = useState([]);
   const [setorOrigemSearchTerm, setSetorOrigemSearchTerm] = useState('');
   const [setorOrigemLoading, setSetorOrigemLoading] = useState(false);
-
-  // Estados para busca de setor responsável
-  const [setorOptions, setSetorOptions] = useState([]);
-  const [setorSearchTerm, setSetorSearchTerm] = useState('');
-  const [setorLoading, setSetorLoading] = useState(false);
 
   // Estados para busca de órgão julgador
   const [orgaoJulgadorOptions, setOrgaoJulgadorOptions] = useState([]);
@@ -149,41 +129,17 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     return () => clearTimeout(timeoutId);
   }, [especieTarefaSearchTerm]);
 
-  // Buscar unidades com debounce
+  // Buscar setor origem com debounce
   useEffect(() => {
     const buscar = async () => {
-      if (unidadeSearchTerm.length < 2) {
-        setUnidadeOptions([]);
-        return;
-      }
-
-      setUnidadeLoading(true);
-      try {
-        const results = await sapiensService.buscarUnidade(unidadeSearchTerm);
-        setUnidadeOptions(results);
-      } catch (err) {
-        console.error('Erro ao buscar unidades:', err);
-        setUnidadeOptions([]);
-      } finally {
-        setUnidadeLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(buscar, 500);
-    return () => clearTimeout(timeoutId);
-  }, [unidadeSearchTerm]);
-
-  // Buscar setor origem com debounce (depende da unidade selecionada)
-  useEffect(() => {
-    const buscar = async () => {
-      if (setorOrigemSearchTerm.length < 2 || !formData.unidade?.id) {
+      if (setorOrigemSearchTerm.length < 2) {
         setSetorOrigemOptions([]);
         return;
       }
 
       setSetorOrigemLoading(true);
       try {
-        const results = await sapiensService.buscarSetor(setorOrigemSearchTerm, formData.unidade.id);
+        const results = await sapiensService.buscarSetor(setorOrigemSearchTerm);
         setSetorOrigemOptions(results);
       } catch (err) {
         console.error('Erro ao buscar setores origem:', err);
@@ -195,40 +151,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
     const timeoutId = setTimeout(buscar, 500);
     return () => clearTimeout(timeoutId);
-  }, [setorOrigemSearchTerm, formData.unidade]);
-
-  // Buscar setores responsáveis com debounce (depende da unidade selecionada)
-  useEffect(() => {
-    const buscar = async () => {
-      if (setorSearchTerm.length < 2 || !formData.unidade?.id) {
-        setSetorOptions([]);
-        return;
-      }
-
-      setSetorLoading(true);
-      try {
-        const results = await sapiensService.buscarSetor(setorSearchTerm, formData.unidade.id);
-        setSetorOptions(results);
-      } catch (err) {
-        console.error('Erro ao buscar setores:', err);
-        setSetorOptions([]);
-      } finally {
-        setSetorLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(buscar, 500);
-    return () => clearTimeout(timeoutId);
-  }, [setorSearchTerm, formData.unidade]);
-
-  // Limpar setores quando a unidade mudar
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, setorOrigem: null, setorResponsavel: null }));
-    setSetorOrigemOptions([]);
-    setSetorOrigemSearchTerm('');
-    setSetorOptions([]);
-    setSetorSearchTerm('');
-  }, [formData.unidade?.id]);
+  }, [setorOrigemSearchTerm]);
 
   // Buscar órgãos julgadores quando as UFs mudarem ou quando digitar
   useEffect(() => {
@@ -304,10 +227,15 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
   // Estados para feedback do submit
   const [submitting, setSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [dialog, setDialog] = useState({ 
+    open: false, 
+    loading: false, 
+    message: '', 
+    success: false 
+  });
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+  const handleCloseDialog = () => {
+    setDialog({ open: false, loading: false, message: '', success: false });
   };
 
   const handleSubmit = async (e) => {
@@ -315,37 +243,52 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     
     // Validações básicas
     if (!formData.especieTarefa) {
-      setSnackbar({ open: true, message: 'Selecione uma Espécie Tarefa', severity: 'error' });
+      setDialog({ open: true, loading: false, message: 'Selecione uma Espécie Tarefa', success: false });
       return;
     }
-    if (!formData.setorResponsavel) {
-      setSnackbar({ open: true, message: 'Selecione um Setor Responsável', severity: 'error' });
+    if (!formData.setorOrigem) {
+      setDialog({ open: true, loading: false, message: 'Selecione um Setor Origem', success: false });
       return;
     }
     if (!formData.dataInicio || !formData.dataFim) {
-      setSnackbar({ open: true, message: 'Preencha as datas de início e fim', severity: 'error' });
+      setDialog({ open: true, loading: false, message: 'Preencha as datas de início e fim', success: false });
       return;
     }
     if (formData.pessoas.length === 0) {
-      setSnackbar({ open: true, message: `Selecione pelo menos um ${isPautista ? 'pautista' : 'avaliador'}`, severity: 'error' });
+      setDialog({ open: true, loading: false, message: `Selecione pelo menos um ${isPautista ? 'pautista' : 'avaliador'}`, success: false });
       return;
     }
 
+    // Abre o dialog com loading
+    setDialog({ open: true, loading: true, message: 'Processando escala...', success: false });
     setSubmitting(true);
+    
     try {
+      let response;
       if (isPautista) {
-        const response = await escalaService.escalarPautistas(formData);
-        setSnackbar({ open: true, message: response?.message || 'Processo de escala de pautistas iniciado!', severity: 'success' });
+        response = await escalaService.escalarPautistas(formData);
       } else {
-        const response = await escalaService.escalarAvaliadores(formData);
-        setSnackbar({ open: true, message: response?.message || 'Processo de escala de avaliadores iniciado!', severity: 'success' });
+        response = await escalaService.escalarAvaliadores(formData);
       }
+      
+      // Atualiza o dialog com a mensagem de sucesso
+      setDialog({ 
+        open: true, 
+        loading: false, 
+        message: response?.message || `Processo de escala de ${isPautista ? 'pautistas' : 'avaliadores'} iniciado!`, 
+        success: true 
+      });
       
       // Limpar formulário após sucesso (opcional)
       // setFormData({ ... });
     } catch (error) {
       console.error('Erro ao escalar:', error);
-      setSnackbar({ open: true, message: error.message || 'Erro ao processar escala', severity: 'error' });
+      setDialog({ 
+        open: true, 
+        loading: false, 
+        message: error.message || 'Erro ao processar escala', 
+        success: false 
+      });
     } finally {
       setSubmitting(false);
     }
@@ -389,66 +332,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             )}
           />
 
-          {/* Unidade - Autocomplete com busca na API do Sapiens */}
-          <Autocomplete
-            options={unidadeOptions}
-            getOptionLabel={(option) => option.nome || ''}
-            value={formData.unidade}
-            loading={unidadeLoading}
-            onChange={(event, newValue) => {
-              setFormData({ ...formData, unidade: newValue });
-            }}
-            onInputChange={(event, newInputValue) => {
-              setUnidadeSearchTerm(newInputValue);
-            }}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            noOptionsText={unidadeSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma unidade encontrada"}
-            renderOption={(props, option) => {
-              const { key, ...otherProps } = props;
-              return (
-                <Box
-                  component="li"
-                  key={key}
-                  {...otherProps}
-                  sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'flex-start !important',
-                    py: 1.5,
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                  <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.sigla}</span>
-                </Box>
-              );
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Unidade"
-                variant="outlined"
-                fullWidth
-                placeholder="Digite para buscar..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {unidadeLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-
           {/* Setor Origem - Autocomplete com busca na API do Sapiens */}
           <Autocomplete
             options={setorOrigemOptions}
             getOptionLabel={(option) => option.nome || ''}
             value={formData.setorOrigem}
             loading={setorOrigemLoading}
-            disabled={!formData.unidade}
             onChange={(event, newValue) => {
               setFormData({ ...formData, setorOrigem: newValue });
             }}
@@ -456,7 +345,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
               setSetorOrigemSearchTerm(newInputValue);
             }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            noOptionsText={!formData.unidade ? "Selecione uma unidade primeiro" : setorOrigemSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum setor encontrado"}
+            noOptionsText={setorOrigemSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum setor encontrado"}
             renderOption={(props, option) => {
               const { key, ...otherProps } = props;
               return (
@@ -488,60 +377,6 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                   endAdornment: (
                     <>
                       {setorOrigemLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-
-          {/* Setor Responsável - Autocomplete com busca na API do Sapiens */}
-          <Autocomplete
-            options={setorOptions}
-            getOptionLabel={(option) => option.nome || ''}
-            value={formData.setorResponsavel}
-            loading={setorLoading}
-            disabled={!formData.unidade}
-            onChange={(event, newValue) => {
-              setFormData({ ...formData, setorResponsavel: newValue });
-            }}
-            onInputChange={(event, newInputValue) => {
-              setSetorSearchTerm(newInputValue);
-            }}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            noOptionsText={!formData.unidade ? "Selecione uma unidade primeiro" : setorSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum setor encontrado"}
-            renderOption={(props, option) => {
-              const { key, ...otherProps } = props;
-              return (
-                <Box
-                  component="li"
-                  key={key}
-                  {...otherProps}
-                  sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'flex-start !important',
-                    py: 1.5,
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                  <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.unidadeNome}</span>
-                </Box>
-              );
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Setor Responsável"
-                variant="outlined"
-                fullWidth
-                placeholder="Digite para buscar..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {setorLoading ? <CircularProgress color="inherit" size={20} /> : null}
                       {params.InputProps.endAdornment}
                     </>
                   ),
@@ -757,17 +592,67 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
         </Box>
       </DashboardCard>
 
-      {/* Snackbar para feedback */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      {/* Dialog para feedback com loading */}
+      <Dialog
+        open={dialog.open}
+        onClose={dialog.loading ? undefined : handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 2, p: 1 }
+        }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        <DialogContent sx={{ textAlign: 'center', py: 4 }}>
+          {dialog.loading ? (
+            <>
+              <CircularProgress size={60} sx={{ mb: 3 }} />
+              <Typography variant="h6" color="textSecondary">
+                {dialog.message}
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 3,
+                  bgcolor: dialog.success ? 'success.light' : 'error.light',
+                }}
+              >
+                {dialog.success ? (
+                  <IconCheck size={40} color="#2e7d32" />
+                ) : (
+                  <IconX size={40} color="#d32f2f" />
+                )}
+              </Box>
+              <Typography variant="h6" gutterBottom>
+                {dialog.success ? 'Sucesso!' : 'Erro'}
+              </Typography>
+              <Typography variant="body1" color="textSecondary">
+                {dialog.message}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        {!dialog.loading && (
+          <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+            <Button
+              variant="contained"
+              color={dialog.success ? 'primary' : 'error'}
+              onClick={handleCloseDialog}
+              sx={{ px: 4 }}
+            >
+              Fechar
+            </Button>
+          </DialogActions>
+        )}
+      </Dialog>
     </PageContainer>
   );
 };
