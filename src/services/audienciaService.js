@@ -7,12 +7,16 @@ const audienciaService = {
    * @param {number} size - Tamanho da página
    * @param {number} orgaoJulgadorId - ID do órgão julgador (opcional)
    * @param {string} numeroProcesso - Número do processo (opcional)
+   * @param {string} orderBy - Campo para ordenação (id, data)
+   * @param {string} sort - Direção da ordenação (ASC, DESC)
    * @returns {Promise<Object>} Resposta paginada com audiências
    */
-  async listar(page = 0, size = 10, orgaoJulgadorId = null, numeroProcesso = null) {
+  async listar(page = 0, size = 10, orgaoJulgadorId = null, numeroProcesso = null, orderBy = 'id', sort = 'DESC') {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
+    params.append('orderBy', orderBy);
+    params.append('sort', sort);
     
     if (orgaoJulgadorId) {
       params.append('orgaoJulgadorId', orgaoJulgadorId.toString());

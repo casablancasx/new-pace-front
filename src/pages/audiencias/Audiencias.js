@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   TextField,
@@ -16,80 +15,143 @@ import {
   Chip,
   styled,
   CircularProgress,
+  Tooltip,
+  TableSortLabel,
 } from '@mui/material';
-import { IconFilterOff, IconSearch } from '@tabler/icons-react';
+import { IconFilterOff, IconSearch, IconAlertCircle, IconCalendar } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import audienciaService from '../../services/audienciaService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 
-// Styled TableRow clicável
-const ClickableTableRow = styled(TableRow)(({ theme }) => ({
+// Styled TableRow com destaque para nova audiencia
+const StyledTableRow = styled(TableRow)(({ theme, isNovaAudiencia }) => ({
   cursor: 'pointer',
+  backgroundColor: isNovaAudiencia ? 'rgba(46, 125, 50, 0.08)' : 'inherit',
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: isNovaAudiencia 
+      ? 'rgba(46, 125, 50, 0.15)' 
+      : theme.palette.action.hover,
   },
 }));
 
-const getStatusColor = (status) => {
-  switch (status?.toUpperCase()) {
-    case 'AGENDADA':
-      return 'primary.main';
-    case 'EM_ANDAMENTO':
-    case 'EM ANDAMENTO':
-      return 'warning.main';
-    case 'CONCLUIDA':
-    case 'CONCLUÍDA':
-      return 'success.main';
+// Cores para analise do avaliador
+const getAnaliseColor = (analise) => {
+  switch (analise) {
+    case 'COMPARECIMENTO':
+      return 'success';
+    case 'NAO_COMPARECER':
+      return 'error';
     case 'CANCELADA':
-      return 'error.main';
+      return 'default';
+    case 'ANALISE_PENDENTE':
     default:
-      return 'grey.500';
+      return 'warning';
   }
 };
 
-const getPrioridadeColor = (isPrioritaria) => {
-  return isPrioritaria ? 'error.main' : 'primary.main';
+const formatAnalise = (analise) => {
+  switch (analise) {
+    case 'COMPARECIMENTO':
+      return 'Comparecer';
+    case 'NAO_COMPARECER':
+      return 'Nao Comparecer';
+    case 'CANCELADA':
+      return 'Cancelada';
+    case 'ANALISE_PENDENTE':
+    default:
+      return 'Pendente';
+  }
 };
 
-const formatStatus = (status) => {
-  if (!status) return '-';
-  return status.replace(/_/g, ' ');
+// Cores para status de cadastro de tarefa
+const getStatusTarefaColor = (status) => {
+  switch (status) {
+    case 'CADASTRADA':
+      return 'success';
+    case 'ERRO':
+      return 'error';
+    case 'PENDENTE':
+    default:
+      return 'warning';
+  }
+};
+
+const formatStatusTarefa = (status) => {
+  switch (status) {
+    case 'CADASTRADA':
+      return 'Cadastrada';
+    case 'ERRO':
+      return 'Erro';
+    case 'PENDENTE':
+    default:
+      return 'Pendente';
+  }
+};
+
+// Cores para tipo de contestacao
+const getTipoContestacaoColor = (tipo) => {
+  switch (tipo) {
+    case 'TIPO1':
+      return 'primary';
+    case 'TIPO2':
+      return 'secondary';
+    case 'TIPO3':
+      return 'info';
+    case 'TIPO4':
+      return 'warning';
+    case 'TIPO5':
+      return 'error';
+    case 'SEM_TIPO':
+    case 'SEM_CONTESTACAO':
+    default:
+      return 'default';
+  }
+};
+
+const formatTipoContestacao = (tipo) => {
+  if (!tipo) return '-';
+  return tipo.replace(/_/g, ' ');
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('pt-BR');
 };
 
 const Audiencias = () => {
-  const navigate = useNavigate();
-
   // Estado dos filtros
   const [filters, setFilters] = useState({
     numeroProcesso: '',
     orgaoJulgador: null,
   });
 
-  // Estado da paginação
+  // Estado da paginacao e ordenacao
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
+  const [orderBy, setOrderBy] = useState('id');
+  const [sort, setSort] = useState('DESC');
 
   // Estado dos dados
   const [audiencias, setAudiencias] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Estados para busca de órgão julgador
+  // Estados para busca de orgao julgador
   const [orgaoJulgadorOptions, setOrgaoJulgadorOptions] = useState([]);
   const [orgaoJulgadorSearchTerm, setOrgaoJulgadorSearchTerm] = useState('');
   const [orgaoJulgadorLoading, setOrgaoJulgadorLoading] = useState(false);
 
-  // Carregar órgãos julgadores
+  // Carregar orgaos julgadores
   useEffect(() => {
     const buscar = async () => {
       setOrgaoJulgadorLoading(true);
       try {
-        // Busca todos os órgãos julgadores (sem filtro de UF para a tela de audiências)
         const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '');
         setOrgaoJulgadorOptions(results);
       } catch (err) {
-        console.error('Erro ao buscar órgãos julgadores:', err);
+        console.error('Erro ao buscar orgaos julgadores:', err);
         setOrgaoJulgadorOptions([]);
       } finally {
         setOrgaoJulgadorLoading(false);
@@ -100,7 +162,7 @@ const Audiencias = () => {
     return () => clearTimeout(timeoutId);
   }, [orgaoJulgadorSearchTerm]);
 
-  // Carregar órgãos na montagem
+  // Carregar orgaos na montagem
   useEffect(() => {
     const carregarOrgaos = async () => {
       setOrgaoJulgadorLoading(true);
@@ -108,7 +170,7 @@ const Audiencias = () => {
         const results = await orgaoJulgadorService.buscar('');
         setOrgaoJulgadorOptions(results);
       } catch (err) {
-        console.error('Erro ao carregar órgãos julgadores:', err);
+        console.error('Erro ao carregar orgaos julgadores:', err);
       } finally {
         setOrgaoJulgadorLoading(false);
       }
@@ -116,7 +178,7 @@ const Audiencias = () => {
     carregarOrgaos();
   }, []);
 
-  // Buscar audiências
+  // Buscar audiencias
   const buscarAudiencias = useCallback(async () => {
     setLoading(true);
     try {
@@ -124,20 +186,22 @@ const Audiencias = () => {
         page,
         rowsPerPage,
         filters.orgaoJulgador?.id || null,
-        filters.numeroProcesso || null
+        filters.numeroProcesso || null,
+        orderBy,
+        sort
       );
       setAudiencias(response.content || []);
       setTotalElements(response.totalElements || 0);
     } catch (err) {
-      console.error('Erro ao buscar audiências:', err);
+      console.error('Erro ao buscar audiencias:', err);
       setAudiencias([]);
       setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, filters.orgaoJulgador, filters.numeroProcesso]);
+  }, [page, rowsPerPage, filters.orgaoJulgador, filters.numeroProcesso, orderBy, sort]);
 
-  // Buscar audiências quando os filtros ou paginação mudarem
+  // Buscar audiencias quando os filtros ou paginacao mudarem
   useEffect(() => {
     buscarAudiencias();
   }, [buscarAudiencias]);
@@ -164,28 +228,30 @@ const Audiencias = () => {
     buscarAudiencias();
   };
 
-  const handleRowClick = (audienciaId) => {
-    // Navegar para detalhes da audiência se necessário
-    // navigate(`/audiencias/${audienciaId}`);
+  const handleSort = (property) => {
+    const isAsc = orderBy === property && sort === 'ASC';
+    setSort(isAsc ? 'DESC' : 'ASC');
+    setOrderBy(property);
+    setPage(0);
   };
 
   return (
-    <PageContainer title="Audiências" description="Listagem de Audiências">
-      {/* Seção de Filtros */}
+    <PageContainer title="Audiencias" description="Listagem de Audiencias">
+      {/* Secao de Filtros */}
       <Box sx={{ mb: 3 }}>
         <DashboardCard title="Filtros">
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              {/* Número do Processo */}
+              {/* Numero do Processo */}
               <TextField
                 fullWidth
-                label="Número do Processo"
+                label="Numero do Processo"
                 variant="outlined"
                 value={filters.numeroProcesso}
                 onChange={(e) =>
                   setFilters({ ...filters, numeroProcesso: e.target.value })
                 }
-                placeholder="Digite o número do processo"
+                placeholder="Digite o numero do processo"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     handleSearch();
@@ -193,7 +259,7 @@ const Audiencias = () => {
                 }}
               />
 
-              {/* Órgão Julgador - Autocomplete com busca na API */}
+              {/* Orgao Julgador - Autocomplete com busca na API */}
               <Autocomplete
                 fullWidth
                 options={orgaoJulgadorOptions}
@@ -207,11 +273,11 @@ const Audiencias = () => {
                   setOrgaoJulgadorSearchTerm(newInputValue);
                 }}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
-                noOptionsText="Nenhum órgão julgador encontrado"
+                noOptionsText="Nenhum orgao julgador encontrado"
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Órgão Julgador"
+                    label="Orgao Julgador"
                     variant="outlined"
                     placeholder="Selecione ou digite para filtrar..."
                     InputProps={{
@@ -250,8 +316,8 @@ const Audiencias = () => {
         </DashboardCard>
       </Box>
 
-      {/* Tabela de Audiências */}
-      <DashboardCard title="Audiências">
+      {/* Tabela de Audiencias */}
+      <DashboardCard title="Audiencias">
         <Box sx={{ overflowX: 'auto', width: '100%' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
@@ -260,17 +326,31 @@ const Audiencias = () => {
           ) : (
             <>
               <Table
-                aria-label="tabela de audiências"
+                aria-label="tabela de audiencias"
                 sx={{
-                  whiteSpace: 'nowrap',
                   mt: 2,
+                  '& .MuiTableCell-root': {
+                    whiteSpace: 'normal',
+                    wordWrap: 'break-word',
+                  },
                 }}
               >
                 <TableHead>
                   <TableRow>
                     <TableCell>
+                      <TableSortLabel
+                        active={orderBy === 'id'}
+                        direction={orderBy === 'id' ? sort.toLowerCase() : 'desc'}
+                        onClick={() => handleSort('id')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          ID
+                        </Typography>
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Hora
+                        Horario
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -285,27 +365,48 @@ const Audiencias = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Advogados
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="subtitle2" fontWeight={600}>
                         Assunto
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Tipo Contestação
+                        Orgao Julgador
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={orderBy === 'data'}
+                        direction={orderBy === 'data' ? sort.toLowerCase() : 'desc'}
+                        onClick={() => handleSort('data')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Data Pauta
+                        </Typography>
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Tipo Contest.
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Prioridade
+                        Analise
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight={600}>
-                        Status
+                        Pautista
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Avaliador
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Status Tarefa
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -313,80 +414,188 @@ const Audiencias = () => {
                 <TableBody>
                   {audiencias.length > 0 ? (
                     audiencias.map((audiencia) => (
-                      <ClickableTableRow 
+                      <StyledTableRow 
                         key={audiencia.audienciaId} 
-                        onClick={() => handleRowClick(audiencia.audienciaId)}
+                        isNovaAudiencia={audiencia.novaAudiencia}
                       >
                         <TableCell>
-                          <Typography sx={{ fontSize: '15px', fontWeight: '500' }}>
-                            {audiencia.hora || '-'}
+                          <Typography sx={{ fontSize: '14px', fontWeight: '500' }}>
+                            {audiencia.audienciaId}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {audiencia.numeroProcesso || '-'}
+                          <Typography sx={{ fontSize: '14px', fontWeight: '500' }}>
+                            {audiencia.horario || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {audiencia.nomeParte || '-'}
-                          </Typography>
+                          <Tooltip title={audiencia.numeroProcesso || ''}>
+                            <Typography 
+                              color="textSecondary" 
+                              variant="subtitle2" 
+                              fontWeight={400}
+                              sx={{ 
+                                maxWidth: 150, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {audiencia.numeroProcesso || '-'}
+                            </Typography>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>
-                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {audiencia.advogados?.join(', ') || '-'}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {audiencia.prioritaria && (
+                              <Tooltip title="Prioritaria">
+                                <IconAlertCircle size={16} color="#d32f2f" />
+                              </Tooltip>
+                            )}
+                            <Tooltip title={audiencia.nomeParte || ''}>
+                              <Typography 
+                                color="textSecondary" 
+                                variant="subtitle2" 
+                                fontWeight={400}
+                                sx={{ 
+                                  maxWidth: 150, 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {audiencia.nomeParte || '-'}
+                              </Typography>
+                            </Tooltip>
+                          </Box>
                         </TableCell>
                         <TableCell>
-                          <Typography 
-                            color="textSecondary" 
-                            variant="subtitle2" 
-                            fontWeight={400}
-                            sx={{ 
-                              maxWidth: 200, 
-                              overflow: 'hidden', 
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={audiencia.assunto}
-                          >
-                            {audiencia.assunto || '-'}
-                          </Typography>
+                          <Tooltip title={audiencia.assunto?.nome || ''}>
+                            <Typography 
+                              color="textSecondary" 
+                              variant="subtitle2" 
+                              fontWeight={400}
+                              sx={{ 
+                                maxWidth: 150, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {audiencia.assunto?.nome || '-'}
+                            </Typography>
+                          </Tooltip>
                         </TableCell>
                         <TableCell>
-                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                            {audiencia.tipoContestacao || '-'}
-                          </Typography>
+                          <Box>
+                            <Tooltip title={audiencia.pauta?.orgaoJulgador?.nome || ''}>
+                              <Typography 
+                                variant="subtitle2" 
+                                fontWeight={500}
+                                sx={{ 
+                                  maxWidth: 150, 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {audiencia.pauta?.orgaoJulgador?.nome || '-'}
+                              </Typography>
+                            </Tooltip>
+                            <Typography variant="caption" color="textSecondary">
+                              {audiencia.pauta?.orgaoJulgador?.uf?.sigla || ''}
+                              {audiencia.pauta?.sala?.nome ? ` - ${audiencia.pauta?.sala?.nome}` : ''}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {audiencia.novaAudiencia && (
+                              <Tooltip title="Nova Audiencia">
+                                <IconCalendar size={16} color="#2e7d32" />
+                              </Tooltip>
+                            )}
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight={500}>
+                                {formatDate(audiencia.pauta?.data)}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {audiencia.pauta?.turno || ''}
+                              </Typography>
+                            </Box>
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            sx={{
-                              px: '4px',
-                              backgroundColor: getPrioridadeColor(audiencia.isPrioritaria),
-                              color: '#fff',
-                            }}
                             size="small"
-                            label={audiencia.isPrioritaria ? 'Alta' : 'Normal'}
+                            color={getTipoContestacaoColor(audiencia.tipoContestacao)}
+                            label={formatTipoContestacao(audiencia.tipoContestacao)}
                           />
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            sx={{
-                              px: '4px',
-                              backgroundColor: getStatusColor(audiencia.statusComparecimento),
-                              color: '#fff',
-                            }}
-                            size="small"
-                            label={formatStatus(audiencia.statusComparecimento) || '-'}
-                          />
+                          <Tooltip title={audiencia.observacao || ''}>
+                            <Chip
+                              size="small"
+                              color={getAnaliseColor(audiencia.analiseAvaliador)}
+                              label={formatAnalise(audiencia.analiseAvaliador)}
+                            />
+                          </Tooltip>
                         </TableCell>
-                      </ClickableTableRow>
+                        <TableCell>
+                          <Tooltip title={audiencia.pautista?.email || ''}>
+                            <Typography 
+                              color="textSecondary" 
+                              variant="subtitle2" 
+                              fontWeight={400}
+                              sx={{ 
+                                maxWidth: 120, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {audiencia.pautista?.nome || '-'}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={audiencia.avaliador?.email || ''}>
+                            <Typography 
+                              color="textSecondary" 
+                              variant="subtitle2" 
+                              fontWeight={400}
+                              sx={{ 
+                                maxWidth: 120, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {audiencia.avaliador?.nome || '-'}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Stack spacing={0.5}>
+                            <Tooltip title="Status Tarefa Pautista">
+                              <Chip
+                                size="small"
+                                color={getStatusTarefaColor(audiencia.statusCadastroTarefaPautista)}
+                                label={`P: ${formatStatusTarefa(audiencia.statusCadastroTarefaPautista)}`}
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Status Tarefa Avaliador">
+                              <Chip
+                                size="small"
+                                color={getStatusTarefaColor(audiencia.statusCadastroTarefaAvaliador)}
+                                label={`A: ${formatStatusTarefa(audiencia.statusCadastroTarefaAvaliador)}`}
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </StyledTableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={12} align="center">
                         <Typography color="textSecondary" sx={{ py: 3 }}>
-                          Nenhuma audiência encontrada
+                          Nenhuma audiencia encontrada
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -401,8 +610,8 @@ const Audiencias = () => {
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage="Linhas por página:"
+                rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                labelRowsPerPage="Linhas por pagina:"
                 labelDisplayedRows={({ from, to, count }) =>
                   `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
                 }
