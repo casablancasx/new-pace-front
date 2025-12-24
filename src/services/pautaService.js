@@ -5,11 +5,11 @@ const pautaService = {
    * Lista pautas com filtros opcionais
    * @param {number} page - Página
    * @param {number} size - Tamanho da página
-   * @param {Object} filtros - Filtros opcionais
-   * @param {number} filtros.orgaoJulgadorId - ID do órgão julgador
-   * @param {number} filtros.avaliadorId - ID do avaliador
-   * @param {string} filtros.orderBy - Campo para ordenação (default: criadoEm)
-   * @param {string} filtros.sort - Direção da ordenação (ASC ou DESC, default: DESC)
+  * @param {Object} filtros - Filtros opcionais
+  * @param {number} filtros.orgaoJulgadorId - ID do órgão julgador
+  * @param {string} filtros.uf - Sigla da UF
+  * @param {string} filtros.orderBy - Campo para ordenação (default: criadoEm)
+  * @param {string} filtros.sort - Direção da ordenação (ASC ou DESC, default: DESC)
    * @returns {Promise<PageResponse<PautaResponseDTO>>}
    */
   async listar(page = 0, size = 10, filtros = {}) {
@@ -19,6 +19,9 @@ const pautaService = {
 
     if (filtros.orgaoJulgadorId) {
       params.append('orgaoJulgadorId', filtros.orgaoJulgadorId.toString());
+    }
+    if (filtros.uf) {
+      params.append('uf', filtros.uf);
     }
     if (filtros.orderBy) {
       params.append('orderBy', filtros.orderBy);

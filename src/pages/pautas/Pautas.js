@@ -23,7 +23,36 @@ import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import pautaService from '../../services/pautaService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
-import avaliadorService from '../../services/avaliadorService';
+
+const unidadesFederativasOptions = [
+  { label: 'Acre (AC)', value: 'AC' },
+  { label: 'Alagoas (AL)', value: 'AL' },
+  { label: 'Amapá (AP)', value: 'AP' },
+  { label: 'Amazonas (AM)', value: 'AM' },
+  { label: 'Bahia (BA)', value: 'BA' },
+  { label: 'Ceará (CE)', value: 'CE' },
+  { label: 'Distrito Federal (DF)', value: 'DF' },
+  { label: 'Espírito Santo (ES)', value: 'ES' },
+  { label: 'Goiás (GO)', value: 'GO' },
+  { label: 'Maranhão (MA)', value: 'MA' },
+  { label: 'Mato Grosso (MT)', value: 'MT' },
+  { label: 'Mato Grosso do Sul (MS)', value: 'MS' },
+  { label: 'Minas Gerais (MG)', value: 'MG' },
+  { label: 'Pará (PA)', value: 'PA' },
+  { label: 'Paraíba (PB)', value: 'PB' },
+  { label: 'Paraná (PR)', value: 'PR' },
+  { label: 'Pernambuco (PE)', value: 'PE' },
+  { label: 'Piauí (PI)', value: 'PI' },
+  { label: 'Rio de Janeiro (RJ)', value: 'RJ' },
+  { label: 'Rio Grande do Norte (RN)', value: 'RN' },
+  { label: 'Rio Grande do Sul (RS)', value: 'RS' },
+  { label: 'Rondônia (RO)', value: 'RO' },
+  { label: 'Roraima (RR)', value: 'RR' },
+  { label: 'Santa Catarina (SC)', value: 'SC' },
+  { label: 'São Paulo (SP)', value: 'SP' },
+  { label: 'Sergipe (SE)', value: 'SE' },
+  { label: 'Tocantins (TO)', value: 'TO' },
+];
 
 // Styled TableRow clicável
 const ClickableTableRow = styled(TableRow)(({ theme }) => ({
@@ -39,7 +68,7 @@ const Pautas = () => {
   // Estado dos filtros
   const [filters, setFilters] = useState({
     orgaoJulgador: null,
-    avaliador: null,
+    uf: null,
   });
 
   // Estado da paginação
@@ -59,9 +88,7 @@ const Pautas = () => {
   const [orgaoJulgadorLoading, setOrgaoJulgadorLoading] = useState(false);
   const [orgaoJulgadorInputValue, setOrgaoJulgadorInputValue] = useState('');
 
-  const [avaliadorOptions, setAvaliadorOptions] = useState([]);
-  const [avaliadorLoading, setAvaliadorLoading] = useState(false);
-  const [avaliadorInputValue, setAvaliadorInputValue] = useState('');
+  const [ufInputValue, setUfInputValue] = useState('');
 
   // Buscar pautas do backend
   const fetchPautas = useCallback(async () => {
@@ -71,8 +98,8 @@ const Pautas = () => {
       if (filters.orgaoJulgador) {
         filtros.orgaoJulgadorId = filters.orgaoJulgador.id;
       }
-      if (filters.avaliador) {
-        filtros.avaliadorId = filters.avaliador.id;
+      if (filters.uf) {
+        filtros.uf = filters.uf.value;
       }
 
       const response = await pautaService.listar(page, rowsPerPage, filtros);
@@ -122,30 +149,6 @@ const Pautas = () => {
     return () => clearTimeout(timeoutId);
   }, [orgaoJulgadorInputValue]);
 
-  // Buscar avaliadores (autocomplete)
-  useEffect(() => {
-    const buscarAvaliadores = async () => {
-      if (avaliadorInputValue.length < 2) {
-        setAvaliadorOptions([]);
-        return;
-      }
-
-      setAvaliadorLoading(true);
-      try {
-        const resultados = await avaliadorService.buscar(avaliadorInputValue);
-        setAvaliadorOptions(resultados);
-      } catch (error) {
-        console.error('Erro ao buscar avaliadores:', error);
-        setAvaliadorOptions([]);
-      } finally {
-        setAvaliadorLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(buscarAvaliadores, 300);
-    return () => clearTimeout(timeoutId);
-  }, [avaliadorInputValue]);
-
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -158,10 +161,10 @@ const Pautas = () => {
   const handleClearFilters = () => {
     setFilters({
       orgaoJulgador: null,
-      avaliador: null,
+      uf: null,
     });
     setOrgaoJulgadorInputValue('');
-    setAvaliadorInputValue('');
+    setUfInputValue('');
     setPage(0);
   };
 
@@ -217,39 +220,25 @@ const Pautas = () => {
                 )}
               />
 
-              {/* Avaliador */}
+              {/* UF */}
               <Autocomplete
                 fullWidth
-                options={avaliadorOptions}
-                getOptionLabel={(option) => option.nome || ''}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                value={filters.avaliador}
+                options={unidadesFederativasOptions}
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) => option.value === value.value}
+                value={filters.uf}
                 onChange={(e, newValue) => {
-                  setFilters({ ...filters, avaliador: newValue });
+                  setFilters({ ...filters, uf: newValue });
                   setPage(0);
                 }}
-                inputValue={avaliadorInputValue}
-                onInputChange={(e, newInputValue) => setAvaliadorInputValue(newInputValue)}
-                loading={avaliadorLoading}
-                noOptionsText={
-                  avaliadorInputValue.length < 2
-                    ? 'Digite ao menos 2 caracteres'
-                    : 'Nenhum avaliador encontrado'
-                }
+                inputValue={ufInputValue}
+                onInputChange={(e, newInputValue) => setUfInputValue(newInputValue)}
+                noOptionsText={ufInputValue ? 'Nenhuma UF encontrada' : 'Selecione uma UF'}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Avaliador"
+                    label="UF"
                     variant="outlined"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {avaliadorLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
                   />
                 )}
               />
@@ -326,7 +315,18 @@ const Pautas = () => {
                 <TableBody>
                   {pautas.length > 0 ? (
                     pautas.map((pauta) => (
-                      <ClickableTableRow key={pauta.pautaId} onClick={() => handleRowClick(pauta.pautaId)}>
+                      <ClickableTableRow
+                        key={pauta.pautaId}
+                        onClick={() => handleRowClick(pauta.pautaId)}
+                        sx={
+                          pauta.possuiNovaAudiencia
+                            ? {
+                                backgroundColor: '#e8f5e9',
+                                '&:hover': { backgroundColor: '#d0ebd4' },
+                              }
+                            : {}
+                        }
+                      >
                         <TableCell>
                           <Typography sx={{ fontSize: '15px', fontWeight: '500' }}>
                             {pauta.pautaId}

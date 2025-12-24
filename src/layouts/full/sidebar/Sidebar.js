@@ -39,12 +39,28 @@ const Sidebar = (props) => {
             }
           }}
         >
-          {/* ------------------------------------------- */}
-          {/* Sidebar Box */}
-          {/* ------------------------------------------- */}
           <Scrollbar sx={{ flex: 1 }}>
             <SidebarItems />
           </Scrollbar>
+          {/* ------------------------------------------- */}
+          {/* Logo above user info */}
+          {/* ------------------------------------------- */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',   
+            }}
+          >
+            <img
+              src="/src/assets/images/logos/logodopace.png"
+              alt="PACE Logo"
+              style={{
+                maxWidth: '150px',
+                height: 'auto'
+              }}
+            />
+          </Box>
           {/* ------------------------------------------- */}
           {/* User Profile - Fixed at bottom */}
           {/* ------------------------------------------- */}
@@ -76,6 +92,26 @@ const Sidebar = (props) => {
         {/* ------------------------------------------- */}
         <SidebarItems />
       </Scrollbar>
+      {/* ------------------------------------------- */}
+      {/* Logo above user info */}
+      {/* ------------------------------------------- */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+         
+        }}
+      >
+        <img
+          src="/src/assets/images/logos/logodopace.png"
+          alt="PACE Logo"
+          style={{
+            maxWidth: '150px',
+            height: 'auto'
+          }}
+        />
+      </Box>
       {/* ------------------------------------------- */}
       {/* User Profile - Fixed at bottom */}
       {/* ------------------------------------------- */}

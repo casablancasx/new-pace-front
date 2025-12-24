@@ -7,25 +7,41 @@ const orgaoJulgadorService = {
    * @param {string[]} ufs - Lista de siglas de UFs (ex: ['PA', 'SP', 'RJ'])
    * @returns {Promise<Array>} Lista de órgãos julgadores
    */
-  async buscar(nome = '', ufs = []) {
+  async buscar(nome = '', ufs = [], page = 0, size = 20, orderBy = 'nome', sort = 'ASC') {
     try {
-      // Construir query params
       const params = new URLSearchParams();
-      params.append('nome', nome);
-      
-      // Adicionar cada UF como parâmetro separado
+
+      if (nome) {
+        params.append('nome', nome);
+      }
+
+      params.append('page', page);
+      params.append('size', size);
+
+      if (orderBy) {
+        params.append('orderBy', orderBy);
+      }
+
+      if (sort) {
+        params.append('sort', sort.toString().toUpperCase());
+      }
+
+      // Mantém envio das UFs selecionadas para compatibilidade caso a API passe a aceitar esse filtro
       if (ufs && ufs.length > 0) {
         ufs.forEach(uf => {
           params.append('ufs', uf);
         });
       }
 
-      const response = await api.get(`/orgao-julgador?${params.toString()}`);
-      
-      // Mapear resposta para o formato esperado pelo Autocomplete
-      return (response || []).map(item => ({
+      const response = await api.get(`/orgaoJulgador?${params.toString()}`);
+
+      // API retorna um Page; garantimos fallback se vier lista simples
+      const content = response?.content ?? response ?? [];
+
+      return content.map(item => ({
         id: item.orgaoJulgadorId,
         nome: item.nome,
+        uf: item.uf?.sigla,
       }));
     } catch (error) {
       console.error('Erro ao buscar órgãos julgadores:', error);

@@ -14,7 +14,7 @@ const planilhaService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/planilha/importar`, {
+    const response = await fetch(`${API_BASE_URL}/pace/api/planilha/importar`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -30,15 +30,22 @@ const Login2 = () => {
               xl: 3
             }}>
             <Card elevation={9} sx={{ p: 4, zIndex: 1, width: '100%', maxWidth: '500px' }}>
-              <Typography 
-                variant="h3" 
-                textAlign="center" 
-                fontWeight={700} 
-                color="black" 
-                mb={3}
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  mb: 3 
+                }}
               >
-                PACE
-              </Typography>
+                <img 
+                  src="/src/assets/images/logos/logodopace.png" 
+                  alt="PACE Logo" 
+                  style={{ 
+                    maxWidth: '200px', 
+                    height: 'auto' 
+                  }} 
+                />
+              </Box>
               <AuthLogin
                 subtext={
                   <Typography variant="subtitle1" textAlign="center" color="textSecondary" mb={1}>
