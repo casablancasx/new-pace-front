@@ -28,19 +28,12 @@ import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import pautaService from '../../services/pautaService';
 import audienciaService from '../../services/audienciaService';
+import { RESPOSTA_ANALISE_OPTIONS, getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
-
-// Opções de resposta de análise
-const respostaAnaliseOptions = [
-  { value: 'ANALISE_PENDENTE', label: 'Análise Pendente' },
-  { value: 'COMPARECIMENTO', label: 'Comparecimento' },
-  { value: 'NAO_COMPARECIMENTO', label: 'Não Comparecer' },
-  { value: 'CANCELADA', label: 'Cancelada' },
-];
 
 const DetalhesPauta = () => {
   const { id } = useParams();
@@ -131,7 +124,7 @@ const DetalhesPauta = () => {
 
     setSalvando(true);
     try {
-      const audienciaAtualizada = await audienciaService.atualizar(
+      const audienciaAtualizada = await audienciaService.analisarAudiencia(
         selectedAudiencia.audienciaId,
         respostaAnalise,
         observacao
@@ -378,16 +371,8 @@ const DetalhesPauta = () => {
                     <TableCell>
                       <Chip
                         size="small"
-                        label={audiencia.analiseAvaliador || 'Pendente'}
-                        color={
-                          audiencia.analiseAvaliador === 'Comparecimento'
-                            ? 'success'
-                            : audiencia.analiseAvaliador === 'Não Comparecer'
-                            ? 'error'
-                            : audiencia.analiseAvaliador === 'Cancelada'
-                            ? 'warning'
-                            : 'default'
-                        }
+                        label={getRespostaAnaliseDescricao(audiencia.analiseAvaliador) || 'Pendente'}
+                        color={getRespostaAnaliseColor(audiencia.analiseAvaliador)}
                       />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200, wordWrap: 'break-word', whiteSpace: 'normal' }}>
@@ -469,7 +454,7 @@ const DetalhesPauta = () => {
               onChange={(e) => setRespostaAnalise(e.target.value)}
               variant="outlined"
             >
-              {respostaAnaliseOptions.map((option) => (
+              {RESPOSTA_ANALISE_OPTIONS.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>

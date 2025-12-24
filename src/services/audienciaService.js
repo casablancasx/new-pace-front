@@ -30,16 +30,16 @@ const audienciaService = {
   },
 
   /**
-   * Atualiza a análise de comparecimento e observação de uma audiência
+   * Analisa uma audiência com resposta e observação
    * @param {number} audienciaId - ID da audiência
-   * @param {string} analiseComparecimento - Status da análise (ANALISE_PENDENTE, COMPARECIMENTO, NAO_COMPARECER, CANCELADA)
-   * @param {string} observacao - Observação/análise textual
-   * @returns {Promise<AudienciaResponseDTO>}
+   * @param {string} resposta - Resposta de análise (ANALISE_PENDENTE, COMPARECER, NAO_COMPARECER, CANCELADA, REDESIGNADA)
+   * @param {string} observacao - Observação/análise textual (pode ser vazia)
+   * @returns {Promise<AudienciaEntity>}
    */
-  async atualizar(audienciaId, analiseComparecimento, observacao) {
-    return api.patch('/audiencia', {
+  async analisarAudiencia(audienciaId, resposta, observacao = '') {
+    return api.put('/audiencia/analisar-audiencia', {
       audienciaId,
-      analiseComparecimento,
+      resposta,
       observacao,
     });
   },

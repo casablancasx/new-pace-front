@@ -28,6 +28,7 @@ import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import audienciaService from '../../services/audienciaService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
+import { getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
 
 // Styled TableRow com destaque para nova audiencia
 const StyledTableRow = styled(TableRow)(({ theme, isNovaAudiencia }) => ({
@@ -647,8 +648,8 @@ const Audiencias = () => {
                           <TableCell>
                             <Chip
                               size="small"
-                              color={getAnaliseColor(audiencia.analiseAvaliador)}
-                              label={formatAnalise(audiencia.analiseAvaliador)}
+                              color={getRespostaAnaliseColor(audiencia.analiseAvaliador)}
+                              label={getRespostaAnaliseDescricao(audiencia.analiseAvaliador)}
                             />
                           </TableCell>
                         )}
