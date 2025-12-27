@@ -92,7 +92,7 @@ const PautaOverview = () => {
 
     return (
         <DashboardCard 
-            title="Pautas Overview" 
+            title="Pautas e Audiências" 
             action={
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <FormControl size="small">

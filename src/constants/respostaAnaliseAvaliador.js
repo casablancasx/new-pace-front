@@ -42,6 +42,39 @@ export const RESPOSTA_ANALISE_AVALIADOR = {
 };
 
 /**
+ * Mapeamento reverso: descrição/label → enum value
+ * Permite buscar pelo que o backend pode retornar (Comparecer, Não Comparecer, etc)
+ */
+const DESCRICAO_TO_VALUE = {};
+Object.values(RESPOSTA_ANALISE_AVALIADOR).forEach((item) => {
+  DESCRICAO_TO_VALUE[item.descricao] = item.value;
+  DESCRICAO_TO_VALUE[item.label] = item.value;
+});
+
+/**
+ * Normaliza a resposta para o enum value
+ * Aceita tanto "COMPARECER" quanto "Comparecer"
+ * @param {string} resposta - Valor ou descrição
+ * @returns {string} Enum value normalizado
+ */
+const normalizarResposta = (resposta) => {
+  if (!resposta) return 'ANALISE_PENDENTE';
+  
+  // Se já é um valor válido do enum, retorna
+  if (RESPOSTA_ANALISE_AVALIADOR[resposta]) {
+    return resposta;
+  }
+  
+  // Tenta buscar pela descrição/label
+  if (DESCRICAO_TO_VALUE[resposta]) {
+    return DESCRICAO_TO_VALUE[resposta];
+  }
+  
+  // Fallback para padrão
+  return 'ANALISE_PENDENTE';
+};
+
+/**
  * Array de opções para select/dropdown
  */
 export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR).map((item) => ({
@@ -51,16 +84,18 @@ export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR
 
 /**
  * Função para obter a cor e descrição de uma resposta
- * @param {string} resposta - Valor do enum (ex: 'COMPARECER')
+ * Aceita tanto enum value quanto descrição do backend
+ * @param {string} resposta - Valor do enum ou descrição (ex: 'COMPARECER' ou 'Comparecer')
  * @returns {Object} Objeto com color, label, descricao, hexColor
  */
 export const getRespostaAnaliseInfo = (resposta) => {
-  return RESPOSTA_ANALISE_AVALIADOR[resposta] || RESPOSTA_ANALISE_AVALIADOR.ANALISE_PENDENTE;
+  const normalized = normalizarResposta(resposta);
+  return RESPOSTA_ANALISE_AVALIADOR[normalized] || RESPOSTA_ANALISE_AVALIADOR.ANALISE_PENDENTE;
 };
 
 /**
  * Função para obter a cor MUI de uma resposta
- * @param {string} resposta - Valor do enum
+ * @param {string} resposta - Valor do enum ou descrição
  * @returns {string} Cor MUI (success, error, warning, secondary, default)
  */
 export const getRespostaAnaliseColor = (resposta) => {
@@ -69,7 +104,7 @@ export const getRespostaAnaliseColor = (resposta) => {
 
 /**
  * Função para obter a descrição de uma resposta
- * @param {string} resposta - Valor do enum
+ * @param {string} resposta - Valor do enum ou descrição
  * @returns {string} Descrição legível
  */
 export const getRespostaAnaliseDescricao = (resposta) => {

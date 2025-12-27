@@ -89,7 +89,7 @@ const ContestacaoOverview = () => {
 
     return (
         <DashboardCard 
-            title="Contestação Overview" 
+            title="Contestação" 
             action={
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <FormControl size="small">
