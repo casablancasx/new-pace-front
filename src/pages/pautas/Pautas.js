@@ -104,7 +104,8 @@ const Pautas = () => {
 
       const response = await pautaService.listar(page, rowsPerPage, filtros);
       setPautas(response.content || []);
-      setTotalElements(response.totalElements || 0);
+      // totalElements está dentro de response.page na estrutura da API
+      setTotalElements(response.page?.totalElements || response.totalElements || 0);
     } catch (error) {
       console.error('Erro ao buscar pautas:', error);
       setSnackbar({

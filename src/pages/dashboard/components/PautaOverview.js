@@ -11,10 +11,18 @@ const PautaOverview = () => {
     const primary = theme.palette.primary.main;
     const secondary = theme.palette.secondary.main;
 
+    // Generate years array dynamically (from 2023 to current year)
+    const currentYear = new Date().getFullYear();
+    const startYear = 2025;
+    const years = Array.from(
+        { length: currentYear - startYear + 1 },
+        (_, i) => startYear + i
+    );
+
     // states
     const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
     const [month, setMonth] = useState('8'); // Default to August
-    const [year, setYear] = useState('2025');
+    const [year, setYear] = useState(currentYear.toString());
     const [chartData, setChartData] = useState({
         categories: [],
         series: []
@@ -137,9 +145,11 @@ const PautaOverview = () => {
                             displayEmpty
                             inputProps={{ 'aria-label': 'Year' }}
                         >
-                            <MenuItem value="2023">2023</MenuItem>
-                            <MenuItem value="2024">2024</MenuItem>
-                            <MenuItem value="2025">2025</MenuItem>
+                            {years.map((y) => (
+                                <MenuItem key={y} value={y.toString()}>
+                                    {y}
+                                </MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
                 </Box>

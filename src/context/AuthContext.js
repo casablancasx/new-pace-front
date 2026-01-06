@@ -3,8 +3,8 @@ import authService from '../services/authService';
 
 export const AuthContext = createContext(null);
 
-// Intervalo de refresh: 30 minutos em milliseconds
-const REFRESH_INTERVAL = 30 * 60 * 1000;
+// Intervalo de refresh: 55 minutos em milliseconds (token expira em 60 min, renovar com 5 min de margem)
+const REFRESH_INTERVAL = 55 * 60 * 1000;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       }
     }, REFRESH_INTERVAL);
 
-    console.log('[Auth] Refresh automático configurado para cada 30 minutos');
+    console.log('[Auth] Refresh automático configurado para cada 55 minutos');
   }, [refreshToken]);
 
   // Parar o intervalo de refresh

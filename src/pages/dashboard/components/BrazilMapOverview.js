@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, FormControl, Select, MenuItem, Switch, FormControlLabel, Tooltip } from '@mui/material';
+import { Box, Typography, FormControl, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import DashboardCard from '../../../components/shared/DashboardCard';
 import { ReactComponent as BrazilMap } from '../../../assets/images/svgs/brazil.svg';
 import { useTheme } from '@mui/material/styles';
@@ -7,13 +7,32 @@ import api from '../../../services/api';
 
 const BrazilMapOverview = () => {
     const theme = useTheme();
-    const [year, setYear] = useState('2025');
+    
+    // Generate years array dynamically (from 2023 to current year)
+    const currentYear = new Date().getFullYear();
+    const startYear = 2025
+    const years = Array.from(
+        { length: currentYear - startYear + 1 },
+        (_, i) => startYear + i
+    );
+
+    const [year, setYear] = useState(currentYear.toString());
     const [month, setMonth] = useState('8');
     const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
     const [metricMode, setMetricMode] = useState('general'); // 'general' | 'priority'
     const [mapData, setMapData] = useState({});
     const [hoveredState, setHoveredState] = useState(null);
+    const [selectedState, setSelectedState] = useState(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+    // Lista ordenada de UFs
+    const stateOrder = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
+    const getSortedStatesData = () => {
+        return stateOrder
+            .map(uf => ({ uf, stateId: `BR-${uf}`, ...mapData[`BR-${uf}`] }))
+            .filter(state => state.pautas !== undefined || state.audiencias !== undefined);
+    };
 
     // Mock data function (replace with API call)
     const fetchMapData = async () => {
@@ -90,6 +109,10 @@ const BrazilMapOverview = () => {
         setHoveredState(null);
     };
 
+    const handleStateClick = (stateId) => {
+        setSelectedState(selectedState === stateId ? null : stateId);
+    };
+
     return (
         <DashboardCard 
             title="Distribuição Regional"
@@ -139,83 +162,136 @@ const BrazilMapOverview = () => {
                             value={year}
                             onChange={(e) => setYear(e.target.value)}
                         >
-                            <MenuItem value="2023">2023</MenuItem>
-                            <MenuItem value="2024">2024</MenuItem>
-                            <MenuItem value="2025">2025</MenuItem>
+                            {years.map((y) => (
+                                <MenuItem key={y} value={y.toString()}>
+                                    {y}
+                                </MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
                 </Box>
             }
         >
-            <Box 
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    height: '500px',
-                    position: 'relative',
-                    '& svg': {
-                        height: '100%',
-                        width: 'auto',
-                        '& path': {
-                            transition: 'fill 0.3s',
-                            cursor: 'pointer',
-                            stroke: '#fff',
-                            strokeWidth: 1
-                        },
-                        '& path:hover': {
-                            opacity: 0.8,
-                            stroke: '#333'
+            <Box sx={{ display: 'flex', gap: 2, height: '500px' }}>
+                {/* Mapa */}
+                <Box 
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    sx={{ 
+                        flex: 1,
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        position: 'relative',
+                        '& svg': {
+                            height: '100%',
+                            width: 'auto',
+                            '& path': {
+                                transition: 'fill 0.3s',
+                                cursor: 'pointer',
+                                stroke: '#fff',
+                                strokeWidth: 1
+                            },
+                            '& path:hover': {
+                                opacity: 0.8,
+                                stroke: '#333'
+                            }
                         }
-                    }
-                }}
-            >
-                <style>
-                    {Object.keys(mapData).map(stateId => `
-                        #${stateId} {
-                            fill: ${getColor(stateId)} !important;
-                        }
-                    `).join('\n')}
-                </style>
-                <BrazilMap />
-                
-                {hoveredState && mapData[hoveredState] && (
-                    <Box
-                        sx={{
-                            position: 'fixed',
-                            top: tooltipPos.y,
-                            left: tooltipPos.x,
-                            backgroundColor: 'rgba(0,0,0,0.9)',
-                            color: '#fff',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            pointerEvents: 'none',
-                            zIndex: 9999,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                            minWidth: '150px'
-                        }}
-                    >
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, borderBottom: '1px solid rgba(255,255,255,0.2)', pb: 0.5 }}>
-                            {hoveredState.replace('BR-', '')}
-                        </Typography>
-                        
-                        {metricMode === 'priority' ? (
-                            <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                Audiências: <strong>{mapData[hoveredState].audiencias}</strong>
+                    }}
+                >
+                    <style>
+                        {Object.keys(mapData).map(stateId => `
+                            #${stateId} {
+                                fill: ${getColor(stateId)} !important;
+                                ${selectedState === stateId ? 'stroke: #333 !important; stroke-width: 2 !important;' : ''}
+                            }
+                        `).join('\n')}
+                    </style>
+                    <BrazilMap />
+                    
+                    {hoveredState && mapData[hoveredState] && (
+                        <Box
+                            sx={{
+                                position: 'fixed',
+                                top: tooltipPos.y,
+                                left: tooltipPos.x,
+                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                color: '#fff',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                pointerEvents: 'none',
+                                zIndex: 9999,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                                minWidth: '150px'
+                            }}
+                        >
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, borderBottom: '1px solid rgba(255,255,255,0.2)', pb: 0.5 }}>
+                                {hoveredState.replace('BR-', '')}
                             </Typography>
-                        ) : (
-                            <>
-                                <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    Pautas: <strong>{mapData[hoveredState].pautas}</strong>
-                                </Typography>
+                            
+                            {metricMode === 'priority' ? (
                                 <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                     Audiências: <strong>{mapData[hoveredState].audiencias}</strong>
                                 </Typography>
-                            </>
-                        )}
-                    </Box>
-                )}
+                            ) : (
+                                <>
+                                    <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        Pautas: <strong>{mapData[hoveredState].pautas}</strong>
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        Audiências: <strong>{mapData[hoveredState].audiencias}</strong>
+                                    </Typography>
+                                </>
+                            )}
+                        </Box>
+                    )}
+                </Box>
+
+                {/* Tabela de estados */}
+                <TableContainer component={Paper} sx={{ width: 280, maxHeight: '100%', overflowY: 'auto' }}>
+                    <Table stickyHeader size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>UF</TableCell>
+                                {metricMode === 'priority' ? (
+                                    <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Audiências</TableCell>
+                                ) : (
+                                    <>
+                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Pautas</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Aud.</TableCell>
+                                    </>
+                                )}
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {getSortedStatesData().map((state) => (
+                                <TableRow
+                                    key={state.stateId}
+                                    onClick={() => handleStateClick(state.stateId)}
+                                    onMouseEnter={() => setHoveredState(state.stateId)}
+                                    onMouseLeave={() => setHoveredState(null)}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        backgroundColor: selectedState === state.stateId ? 'rgba(25, 103, 210, 0.15)' : hoveredState === state.stateId ? 'rgba(25, 103, 210, 0.05)' : 'transparent',
+                                        '&:hover': { backgroundColor: 'rgba(25, 103, 210, 0.08)' },
+                                        borderLeft: selectedState === state.stateId ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent'
+                                    }}
+                                >
+                                    <TableCell sx={{ fontWeight: selectedState === state.stateId ? 'bold' : 'normal' }}>
+                                        {state.uf}
+                                    </TableCell>
+                                    {metricMode === 'priority' ? (
+                                        <TableCell align="right">{state.audiencias || 0}</TableCell>
+                                    ) : (
+                                        <>
+                                            <TableCell align="right">{state.pautas || 0}</TableCell>
+                                            <TableCell align="right">{state.audiencias || 0}</TableCell>
+                                        </>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             </Box>
         </DashboardCard>
     );

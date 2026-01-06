@@ -1,7 +1,13 @@
+import authService from './authService';
+
 const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080') + '/pace/api';
 
+// Flag para evitar múltiplas tentativas de refresh simultâneas
+let isRefreshing = false;
+let refreshPromise = null;
+
 const api = {
-  async request(endpoint, options = {}) {
+  async request(endpoint, options = {}, isRetry = false) {
     const token = localStorage.getItem('token');
     
     const defaultHeaders = {
@@ -23,10 +29,39 @@ const api = {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/auth/login';
-      throw new Error('Sessão expirada. Faça login novamente.');
+      // Se já é uma tentativa de retry ou endpoint de refresh, fazer logout
+      if (isRetry || endpoint.includes('/auth/refresh')) {
+        console.log('[API] Token expirado e refresh falhou. Fazendo logout...');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth/login';
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      // Tentar fazer refresh do token
+      try {
+        console.log('[API] Token expirado. Tentando refresh...');
+        
+        // Evitar múltiplos refreshes simultâneos
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = authService.refreshToken();
+        }
+        
+        await refreshPromise;
+        isRefreshing = false;
+        
+        console.log('[API] Token renovado. Repetindo requisição...');
+        // Repetir a requisição original com o novo token
+        return this.request(endpoint, options, true);
+      } catch (refreshError) {
+        isRefreshing = false;
+        console.error('[API] Falha ao renovar token:', refreshError);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth/login';
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
     }
 
     if (!response.ok) {
