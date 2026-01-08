@@ -147,6 +147,13 @@ const Menuitems = [
     icon: IconUserPlus,
     href: '/advogados-prioritarios',
     roles: ['ADMIN'],
+  },
+  {
+    id: uniqueId(),
+    title: 'Controle de Usuários',
+    icon: IconSettings,
+    href: '/usuarios',
+    roles: ['ADMIN'],
   }
 ];
 
