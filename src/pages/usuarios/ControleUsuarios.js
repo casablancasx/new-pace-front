@@ -31,7 +31,8 @@ import usuarioService from '../../services/usuarioService';
 const getRoleLabel = (role) => {
   const roles = {
     'ADMIN': 'Administrador',
-    'USER': 'Usuário',
+    'PAUTISTA': 'Pautista',
+    'AVALIADOR': 'Avaliador',
   };
   return roles[role] || role;
 };
@@ -140,7 +141,8 @@ const ControleUsuarios = () => {
                 >
                   <MenuItem value="">Todos os Perfis</MenuItem>
                   <MenuItem value="ADMIN">Administrador</MenuItem>
-                  <MenuItem value="USER">Usuário</MenuItem>
+                  <MenuItem value="PAUTISTA">Pautista</MenuItem>
+                  <MenuItem value="AVALIADOR">Avaliador</MenuItem>
                 </Select>
               </FormControl>
               

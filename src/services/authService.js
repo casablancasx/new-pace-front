@@ -16,7 +16,7 @@ const authService = {
             ...decoded,
             name: decoded.nome,
             // Usar role da resposta direta do login (prioridade) ou do token decodificado
-            role: response.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('USER'))) || 'USER',
+            role: response.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('PAUTISTA') || r.includes('AVALIADOR'))) || 'PAUTISTA',
         };
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -60,7 +60,7 @@ const authService = {
           ...decoded,
           name: decoded.nome,
           // Usar role da resposta direta (prioridade) ou do token decodificado ou manter a atual
-          role: data.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('USER'))) || currentUser?.role || 'USER',
+          role: data.role || decoded.role || (decoded.roles && decoded.roles.find(r => r.includes('ADMIN') || r.includes('PAUTISTA') || r.includes('AVALIADOR'))) || currentUser?.role || 'PAUTISTA',
         };
         localStorage.setItem('user', JSON.stringify(user));
       } catch (e) {

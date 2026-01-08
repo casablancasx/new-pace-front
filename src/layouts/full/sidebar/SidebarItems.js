@@ -183,7 +183,7 @@ const SidebarItems = () => {
   const location = useLocation();
   const pathDirect = location.pathname;
   const { user } = useAuth();
-  const userRole = user?.role || 'USER';
+  const userRole = user?.role || 'PAUTISTA';
 
   return (
     <SidebarContainer>

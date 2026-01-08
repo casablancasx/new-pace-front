@@ -62,8 +62,8 @@ import {
   IconLock, IconAlignBoxLeftBottom, IconCheckbox, IconRadar, IconSlideshow, IconCaretUpDown, IconTable, IconForms
 } from '@tabler/icons-react';
 
-// Roles: USER, ADMIN
-// USER: Dashboard, Pautas, Audiências
+// Roles: ADMIN, PAUTISTA, AVALIADOR
+// PAUTISTA/AVALIADOR: Dashboard, Pautas, Audiências
 // ADMIN: Todas as rotas
 
 const Menuitems = [
@@ -77,7 +77,7 @@ const Menuitems = [
     title: 'Dashboard',
     icon: IconLayoutDashboard,
     href: '/dashboard',
-    roles: ['USER', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
   },
   {
     id: uniqueId(),
@@ -131,14 +131,14 @@ const Menuitems = [
     title: 'Pautas',
     icon: IconClipboardList,
     href: '/pautas',
-    roles: ['USER', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
   },
   {
     id: uniqueId(),
     title: 'Audiências',
     icon: IconGavel,
     href: '/audiencias',
-    roles: ['USER', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
   }
   ,
   {
