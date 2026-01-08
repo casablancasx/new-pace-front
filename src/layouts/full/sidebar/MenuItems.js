@@ -123,7 +123,6 @@ const Menuitems = [
         title: 'Escalar Pautista',
         href: '/escala/pautista',
         roles: ['ADMIN'],
-        disabled: true,
       }
     ],
   },

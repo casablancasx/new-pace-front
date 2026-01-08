@@ -18,6 +18,7 @@ import DashboardCard from '../../components/shared/DashboardCard';
 import sapiensService from '../../services/sapiensService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import avaliadorService from '../../services/avaliadorService';
+import pautistaService from '../../services/pautistaService';
 import escalaService from '../../services/escalaService';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -61,13 +62,6 @@ const tipoContestacaoOptions = [
   { label: 'SEM CONTESTAÇÃO', value: 'SEM_CONTESTACAO' },
 ];
 
-const pautistaOptions = [
-  { label: 'João Silva', value: 'joao' },
-  { label: 'Maria Santos', value: 'maria' },
-  { label: 'Pedro Oliveira', value: 'pedro' },
-  { label: 'Ana Costa', value: 'ana' },
-];
-
 const EscalaForm = ({ tipo = 'pautista' }) => {
   const { user } = useContext(AuthContext);
   const isPautista = tipo === 'pautista';
@@ -104,6 +98,11 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [avaliadorOptions, setAvaliadorOptions] = useState([]);
   const [avaliadorSearchTerm, setAvaliadorSearchTerm] = useState('');
   const [avaliadorLoading, setAvaliadorLoading] = useState(false);
+
+  // Estados para busca de pautistas
+  const [pautistaOptions, setPautistaOptions] = useState([]);
+  const [pautistaSearchTerm, setPautistaSearchTerm] = useState('');
+  const [pautistaLoading, setPautistaLoading] = useState(false);
 
   // Buscar espécies de tarefa com debounce
   useEffect(() => {
@@ -222,6 +221,45 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
         }
       };
       carregarAvaliadores();
+    }
+  }, [isPautista]);
+
+  // Buscar pautistas (carrega na montagem e filtra conforme digita)
+  useEffect(() => {
+    const buscar = async () => {
+      if (!isPautista) return; // Só busca se for tela de pautista
+      
+      setPautistaLoading(true);
+      try {
+        const results = await pautistaService.buscar(pautistaSearchTerm);
+        setPautistaOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar pautistas:', err);
+        setPautistaOptions([]);
+      } finally {
+        setPautistaLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(buscar, 300);
+    return () => clearTimeout(timeoutId);
+  }, [pautistaSearchTerm, isPautista]);
+
+  // Carregar pautistas na montagem do componente (se for tela de pautista)
+  useEffect(() => {
+    if (isPautista) {
+      const carregarPautistas = async () => {
+        setPautistaLoading(true);
+        try {
+          const results = await pautistaService.buscar('');
+          setPautistaOptions(results);
+        } catch (err) {
+          console.error('Erro ao carregar pautistas:', err);
+        } finally {
+          setPautistaLoading(false);
+        }
+      };
+      carregarPautistas();
     }
   }, [isPautista]);
 
@@ -500,18 +538,52 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             <Autocomplete
               multiple
               options={pautistaOptions}
-              getOptionLabel={(option) => option.label}
+              getOptionLabel={(option) => option.nome || ''}
               value={formData.pessoas}
-              onChange={(e, newValue) =>
-                setFormData({ ...formData, pessoas: newValue })
-              }
+              loading={pautistaLoading}
+              onChange={(event, newValue) => {
+                setFormData({ ...formData, pessoas: newValue });
+              }}
+              onInputChange={(event, newInputValue) => {
+                setPautistaSearchTerm(newInputValue);
+              }}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
               filterSelectedOptions
+              noOptionsText="Nenhum pautista encontrado"
+              renderOption={(props, option) => {
+                const { key, ...otherProps } = props;
+                return (
+                  <Box
+                    component="li"
+                    key={key}
+                    {...otherProps}
+                    sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'flex-start !important',
+                      py: 1.5,
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{option.nome}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.setor}</span>
+                  </Box>
+                );
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label={pessoaLabel}
                   variant="outlined"
-                  placeholder={`Selecione os ${pessoaLabel.toLowerCase()}`}
+                  placeholder="Selecione ou digite para filtrar..."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {pautistaLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
                 />
               )}
             />
