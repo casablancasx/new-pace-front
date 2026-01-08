@@ -103,7 +103,6 @@ const Menuitems = [
         title: 'Pautistas',
         href: '/equipe/pautistas',
         roles: ['ADMIN'],
-        disabled: true,
       },
     ],
   },
