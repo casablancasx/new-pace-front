@@ -21,7 +21,7 @@ const ContestacaoOverview = () => {
 
     // states
     const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
-    const [month, setMonth] = useState('8'); // Default to August
+    const [month, setMonth] = useState((new Date().getMonth() + 1).toString()); // Mês atual
     const [year, setYear] = useState(currentYear.toString());
     const [chartData, setChartData] = useState({
         categories: ['TIPO 1', 'TIPO 2', 'TIPO 3', 'TIPO 4', 'TIPO 5', 'SEM TIPO', 'SEM CONTESTACAO'],

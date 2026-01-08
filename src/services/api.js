@@ -29,6 +29,12 @@ const api = {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (response.status === 401) {
+      // Se for endpoint de login, deixar o erro passar para o componente tratar
+      if (endpoint.includes('/auth/login')) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Erro ao fazer login');
+      }
+
       // Se já é uma tentativa de retry ou endpoint de refresh, fazer logout
       if (isRetry || endpoint.includes('/auth/refresh')) {
         console.log('[API] Token expirado e refresh falhou. Fazendo logout...');

@@ -17,7 +17,7 @@ const BrazilMapOverview = () => {
     );
 
     const [year, setYear] = useState(currentYear.toString());
-    const [month, setMonth] = useState('8');
+    const [month, setMonth] = useState((new Date().getMonth() + 1).toString()); // Mês atual
     const [viewMode, setViewMode] = useState('year'); // 'month' | 'year'
     const [metricMode, setMetricMode] = useState('general'); // 'general' | 'priority'
     const [mapData, setMapData] = useState({});
