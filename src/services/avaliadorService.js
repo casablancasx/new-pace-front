@@ -5,24 +5,27 @@ const avaliadorService = {
     const response = await api.get(`/avaliador?page=${page}&size=${size}`);
     
     // Mapear resposta para o formato esperado pelo frontend
+    // Novo formato da API: { content: [...], page: { size, number, totalElements, totalPages } }
     const content = (response.content || []).map(item => ({
-      sapiensId: item.sapiensId,
+      sapiensId: item.id,
       nome: item.nome,
       email: item.email,
-      telefone: item.telefone,
-      setor: item.setor,
-      unidade: item.unidade,
+      setor: { nome: item.setor || '' },
+      unidade: { nome: item.unidade || '' },
       quantidadePautas: item.quantidadePautas || 0,
       quantidadeAudiencias: item.quantidadeAudiencias || 0,
       disponivel: item.disponivel,
-      quantidadeAudienciasAvaliadas: item.quantidaDeAudienciasAvaliadas || 0,
-      quantidadeTotalAudiencias: item.quantidadeTotalAudiencias || 0,
+      quantidadeAudienciasAvaliadas: item.quantidadeAudienciasAvaliadas || 0,
+      quantidadeTotalAudiencias: item.quantidadeAudiencias || 0,
     }));
+    
+    // Suporta tanto formato antigo (totalPages direto) quanto novo (page.totalPages)
+    const pageInfo = response.page || {};
     
     return {
       content,
-      totalPages: response.totalPages || 1,
-      totalElements: response.totalElements || 0,
+      totalPages: pageInfo.totalPages || response.totalPages || 1,
+      totalElements: pageInfo.totalElements || response.totalElements || 0,
     };
   },
 
@@ -46,11 +49,12 @@ const avaliadorService = {
     const response = await api.get(`/avaliador?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo Autocomplete
+    // Suporta novo formato da API onde setor é string
     return (response.content || []).map(item => ({
-      id: item.sapiensId,
+      id: item.id || item.sapiensId,
       nome: item.nome,
       email: item.email,
-      setor: item.setor?.nome || '',
+      setor: typeof item.setor === 'string' ? item.setor : (item.setor?.nome || ''),
     }));
   },
 

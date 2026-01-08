@@ -226,11 +226,6 @@ const AvaliadorCard = ({ avaliador, onRemover }) => {
           <Typography variant="caption" color="textSecondary" display="block">
             Unidade: {avaliador.unidade?.nome || ''}
           </Typography>
-          {avaliador.telefone && (
-            <Typography variant="caption" color="textSecondary" display="block">
-              Telefone: {avaliador.telefone}
-            </Typography>
-          )}
         </Box>
       </CardContent>
     </StyledCard>
