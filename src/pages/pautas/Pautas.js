@@ -22,6 +22,7 @@ import { IconFilterOff } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import pautaService from '../../services/pautaService';
+import useAuth from '../../hooks/useAuth';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 
 const unidadesFederativasOptions = [
@@ -64,6 +65,7 @@ const ClickableTableRow = styled(TableRow)(({ theme }) => ({
 
 const Pautas = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Estado dos filtros
   const [filters, setFilters] = useState({
@@ -101,6 +103,10 @@ const Pautas = () => {
       if (filters.uf) {
         filtros.uf = filters.uf.value;
       }
+      // Se não for ADMIN, passa o userId para filtrar apenas as pautas do usuário
+      if (user?.role !== 'ADMIN' && user?.id) {
+        filtros.userId = user.id;
+      }
 
       const response = await pautaService.listar(page, rowsPerPage, filtros);
       setPautas(response.content || []);
@@ -118,7 +124,7 @@ const Pautas = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, filters, user]);
 
   // Buscar pautas quando página, filtros ou rowsPerPage mudam
   useEffect(() => {

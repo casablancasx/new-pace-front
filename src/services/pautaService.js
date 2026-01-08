@@ -8,6 +8,7 @@ const pautaService = {
   * @param {Object} filtros - Filtros opcionais
   * @param {number} filtros.orgaoJulgadorId - ID do órgão julgador
   * @param {string} filtros.uf - Sigla da UF
+  * @param {number} filtros.userId - ID do usuário (para filtrar pautas do usuário)
   * @param {string} filtros.orderBy - Campo para ordenação (default: criadoEm)
   * @param {string} filtros.sort - Direção da ordenação (ASC ou DESC, default: DESC)
    * @returns {Promise<PageResponse<PautaResponseDTO>>}
@@ -22,6 +23,9 @@ const pautaService = {
     }
     if (filtros.uf) {
       params.append('uf', filtros.uf);
+    }
+    if (filtros.userId) {
+      params.append('userId', filtros.userId.toString());
     }
     if (filtros.orderBy) {
       params.append('orderBy', filtros.orderBy);
