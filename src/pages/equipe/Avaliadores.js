@@ -29,6 +29,8 @@ import {
   IconTrash,
   IconUserPlus,
   IconAlertTriangle,
+  IconPlus,
+  IconX,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
@@ -244,7 +246,12 @@ const Avaliadores = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [lotacoesDisponiveis, setLotacoesDisponiveis] = useState([]);
+  const [setoresSelecionados, setSetoresSelecionados] = useState([]);
+  const [loadingLotacoes, setLoadingLotacoes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -309,7 +316,11 @@ const Avaliadores = () => {
     setSearchTerm('');
     setSearchResults([]);
     setSelectedUser(null);
+    setNome('');
+    setEmail('');
     setTelefone('');
+    setLotacoesDisponiveis([]);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
@@ -319,22 +330,86 @@ const Avaliadores = () => {
     setSelectedUser(null);
     setSearchTerm('');
     setSearchResults([]);
+    setNome('');
+    setEmail('');
     setTelefone('');
+    setLotacoesDisponiveis([]);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
 
+  // Buscar lotações quando um usuário é selecionado
+  const handleUserSelect = async (newValue) => {
+    setSelectedUser(newValue);
+    setSetoresSelecionados([]);
+    
+    if (newValue) {
+      // Preencher Nome e Email automaticamente
+      setNome(newValue.nome || '');
+      setEmail(newValue.email || '');
+      
+      // Buscar lotações do colaborador
+      const colaboradorId = newValue.lotacaoOriginal?.colaborador?.id;
+      if (colaboradorId) {
+        setLoadingLotacoes(true);
+        try {
+          const lotacoes = await sapiensService.buscarLotacoesColaborador(colaboradorId);
+          setLotacoesDisponiveis(lotacoes);
+        } catch (err) {
+          console.error('Erro ao buscar lotações:', err);
+          setLotacoesDisponiveis([]);
+        } finally {
+          setLoadingLotacoes(false);
+        }
+      }
+    } else {
+      setNome('');
+      setEmail('');
+      setLotacoesDisponiveis([]);
+    }
+  };
+
+  const handleAdicionarSetor = (setor) => {
+    // Verifica se o setor já foi adicionado
+    if (!setoresSelecionados.find(s => s.id === setor.id)) {
+      setSetoresSelecionados([...setoresSelecionados, setor]);
+    }
+  };
+
+  const handleRemoverSetor = (setorId) => {
+    setSetoresSelecionados(setoresSelecionados.filter(s => s.id !== setorId));
+  };
+
   const handleSalvar = async () => {
     if (!selectedUser) return;
+
+    if (setoresSelecionados.length === 0) {
+      setError('Selecione pelo menos um setor');
+      return;
+    }
 
     setSaving(true);
     setError('');
     setSuccess('');
 
     try {
-      const payload = sapiensService.transformarParaCadastro(selectedUser.lotacaoOriginal);
-      // Adicionar telefone ao payload
-      payload.telefone = telefone;
+      // Montar payload conforme DTO esperado pelo backend
+      const payload = {
+        sapiensId: selectedUser.id,
+        nome: nome,
+        email: email,
+        telefone: telefone,
+        setores: setoresSelecionados.map(setor => ({
+          id: setor.id,
+          nome: setor.nome,
+          unidade: {
+            id: setor.unidade?.id,
+            nome: setor.unidade?.nome,
+          }
+        })),
+      };
+      
       await avaliadorService.cadastrar(payload);
       setSuccess('Avaliador cadastrado com sucesso!');
       carregarAvaliadores();
@@ -473,10 +548,19 @@ const Avaliadores = () => {
               fullWidth
               options={searchResults.map(r => sapiensService.transformarParaExibicao(r))}
               getOptionLabel={(option) => option.nome || ''}
+              filterOptions={(options) => {
+                // Remove duplicatas baseado no id do usuário
+                const seen = new Set();
+                return options.filter(option => {
+                  if (seen.has(option.id)) return false;
+                  seen.add(option.id);
+                  return true;
+                });
+              }}
               loading={searchLoading}
               value={selectedUser}
               onChange={(event, newValue) => {
-                setSelectedUser(newValue);
+                handleUserSelect(newValue);
               }}
               onInputChange={(event, newInputValue) => {
                 setSearchTerm(newInputValue);
@@ -507,59 +591,139 @@ const Avaliadores = () => {
                     component="li"
                     key={key}
                     {...otherProps}
-                    sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'flex-start !important',
-                      py: 1.5,
-                    }}
                   >
-                    <Typography variant="caption" color="textSecondary">
-                      {option.unidade?.nome}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {option.setor?.nome}
-                    </Typography>
-                    <Typography variant="body1" fontWeight={600}>
-                      {option.nome}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body1" fontWeight={600}>
+                        {option.nome}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {option.unidade?.nome}
+                      </Typography>
+                    </Box>
                   </Box>
                 );
               }}
             />
 
-            {/* Exibir dados do usuário selecionado */}
+            {/* Campos de Nome, Email e Telefone */}
             {selectedUser && (
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+              <>
+                <TextField
+                  fullWidth
+                  label="Nome"
+                  variant="outlined"
+                  value={nome}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  disabled
+                />
+
+                <TextField
+                  fullWidth
+                  label="Email"
+                  variant="outlined"
+                  value={email}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  disabled
+                />
+
+                <TextField
+                  fullWidth
+                  label="Telefone"
+                  variant="outlined"
+                  placeholder="(XX) XXXXX-XXXX"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  helperText="Digite o telefone do avaliador"
+                />
+              </>
+            )}
+
+            {/* Seção de Setores/Lotações */}
+            {selectedUser && (
+              <Box>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Usuário Selecionado
+                  Setores Disponíveis
                 </Typography>
-                <Typography variant="h6" fontWeight={600}>
-                  {selectedUser.nome}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {selectedUser.email}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                  <strong>Setor:</strong> {selectedUser.setor?.nome}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  <strong>Unidade:</strong> {selectedUser.unidade?.nome}
-                </Typography>
+                
+                {loadingLotacoes ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : lotacoesDisponiveis.length > 0 ? (
+                  <Stack spacing={1}>
+                    {lotacoesDisponiveis.map((lotacao) => {
+                      const isAdicionado = setoresSelecionados.find(s => s.id === lotacao.id);
+                      return (
+                        <Box
+                          key={lotacao.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 1.5,
+                            bgcolor: isAdicionado ? 'success.lighter' : 'grey.100',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {lotacao.nome}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {lotacao.unidade?.nome}
+                            </Typography>
+                          </Box>
+                          {!isAdicionado ? (
+                            <Tooltip title="Adicionar setor">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleAdicionarSetor(lotacao)}
+                              >
+                                <IconPlus size={18} />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <Chip
+                              label="Adicionado"
+                              size="small"
+                              color="success"
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    Nenhuma lotação encontrada
+                  </Typography>
+                )}
               </Box>
             )}
 
-            {/* Campo de telefone (preenchimento manual) */}
-            {selectedUser && (
-              <TextField
-                fullWidth
-                label="Telefone"
-                variant="outlined"
-                placeholder="(XX) XXXXX-XXXX"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                helperText="Digite o telefone do avaliador"
-              />
+            {/* Setores Selecionados */}
+            {setoresSelecionados.length > 0 && (
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Setores Selecionados ({setoresSelecionados.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {setoresSelecionados.map((setor) => (
+                    <Chip
+                      key={setor.id}
+                      label={setor.nome}
+                      onDelete={() => handleRemoverSetor(setor.id)}
+                      deleteIcon={<IconX size={16} />}
+                      color="primary"
+                    />
+                  ))}
+                </Box>
+              </Box>
             )}
           </Box>
         </DialogContent>
@@ -576,7 +740,7 @@ const Avaliadores = () => {
             onClick={handleSalvar}
             variant="contained"
             color="primary"
-            disabled={!selectedUser || saving}
+            disabled={!selectedUser || setoresSelecionados.length === 0 || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
           </Button>

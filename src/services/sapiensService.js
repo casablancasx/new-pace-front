@@ -278,6 +278,63 @@ const sapiensService = {
       sigla: entity.sigla || '',
     }));
   },
+
+  // Buscar lotações de um colaborador na API do Sapiens
+  async buscarLotacoesColaborador(colaboradorId) {
+    if (!colaboradorId) {
+      return [];
+    }
+
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.error('Token não encontrado');
+      return [];
+    }
+
+    const where = {
+      'colaborador.id': `eq:${colaboradorId}`
+    };
+
+    const params = new URLSearchParams({
+      where: JSON.stringify(where),
+      limit: '10',
+      offset: '0',
+      order: JSON.stringify({ id: 'DESC' }),
+      populate: JSON.stringify(['populateAll', 'setor.unidade']),
+      context: '{}'
+    });
+
+    const url = `${SAPIENS_URL}/v1/administrativo/lotacao?${params.toString()}`;
+    
+    console.log('Buscando lotações do colaborador no Sapiens:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Erro na resposta do Sapiens:', response.status, response.statusText);
+      throw new Error('Erro ao buscar lotações no Sapiens');
+    }
+
+    const data = await response.json();
+    console.log('Resultados lotações:', data);
+    
+    // Retorna as lotações formatadas com setor e unidade
+    return (data.entities || []).map(entity => ({
+      id: entity.setor?.id,
+      nome: entity.setor?.nome || '',
+      unidade: {
+        id: entity.setor?.unidade?.id,
+        nome: entity.setor?.unidade?.nome || '',
+      },
+    }));
+  },
 };
 
 export default sapiensService;
