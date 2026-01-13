@@ -23,6 +23,10 @@ import {
   Slide,
   Alert,
   Snackbar,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  MenuItem,
 } from '@mui/material';
 import {
   IconTrash,
@@ -70,6 +74,26 @@ const getInitials = (nome) => {
     return `${names[0][0]}${names[names.length - 1][0]}`;
   }
   return names[0][0];
+};
+
+// Função para formatar telefone: (XX) XXXXX-XXXX
+const formatarTelefone = (valor) => {
+  if (!valor) return '';
+  
+  // Remove tudo que não é número
+  const apenas_numeros = valor.replace(/\D/g, '');
+  
+  // Limita a 11 dígitos
+  const limitado = apenas_numeros.slice(0, 11);
+  
+  // Aplica a máscara
+  if (limitado.length <= 2) {
+    return `(${limitado}`;
+  } else if (limitado.length <= 7) {
+    return `(${limitado.slice(0, 2)}) ${limitado.slice(2)}`;
+  } else {
+    return `(${limitado.slice(0, 2)}) ${limitado.slice(2, 7)}-${limitado.slice(7)}`;
+  }
 };
 
 const PautistaCard = ({ pautista, onRemover }) => {
@@ -204,7 +228,13 @@ const Pautistas = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [cargo, setCargo] = useState('');
+  const [lotacoesDisponiveis, setLotacoesDisponiveis] = useState([]);
+  const [setoresSelecionados, setSetoresSelecionados] = useState([]);
+  const [loadingLotacoes, setLoadingLotacoes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -269,7 +299,12 @@ const Pautistas = () => {
     setSearchTerm('');
     setSearchResults([]);
     setSelectedUser(null);
+    setNome('');
+    setEmail('');
     setTelefone('');
+    setCargo('');
+    setLotacoesDisponiveis([]);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
@@ -279,22 +314,91 @@ const Pautistas = () => {
     setSelectedUser(null);
     setSearchTerm('');
     setSearchResults([]);
+    setNome('');
+    setEmail('');
     setTelefone('');
+    setCargo('');
+    setLotacoesDisponiveis([]);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
 
+  // Buscar lotações quando um usuário é selecionado
+  const handleUserSelect = async (newValue) => {
+    setSelectedUser(newValue);
+    setSetoresSelecionados([]);
+    
+    if (newValue) {
+      // Preencher Nome e Email automaticamente
+      setNome(newValue.nome || '');
+      setEmail(newValue.email || '');
+      
+      // Buscar lotações do colaborador
+      const colaboradorId = newValue.lotacaoOriginal?.colaborador?.id;
+      if (colaboradorId) {
+        setLoadingLotacoes(true);
+        try {
+          const lotacoes = await sapiensService.buscarLotacoesColaborador(colaboradorId);
+          setLotacoesDisponiveis(lotacoes);
+        } catch (err) {
+          console.error('Erro ao buscar lotações:', err);
+          setLotacoesDisponiveis([]);
+        } finally {
+          setLoadingLotacoes(false);
+        }
+      }
+    } else {
+      setNome('');
+      setEmail('');
+      setLotacoesDisponiveis([]);
+    }
+  };
+
+  const handleToggleSetor = (setor) => {
+    const isSelected = setoresSelecionados.find(s => s.id === setor.id);
+    if (isSelected) {
+      setSetoresSelecionados(setoresSelecionados.filter(s => s.id !== setor.id));
+    } else {
+      setSetoresSelecionados([...setoresSelecionados, setor]);
+    }
+  };
+
   const handleSalvar = async () => {
     if (!selectedUser) return;
+
+    if (setoresSelecionados.length === 0) {
+      setError('Selecione pelo menos um setor');
+      return;
+    }
+
+    if (!cargo) {
+      setError('Selecione o cargo');
+      return;
+    }
 
     setSaving(true);
     setError('');
     setSuccess('');
 
     try {
-      const payload = sapiensService.transformarParaCadastro(selectedUser.lotacaoOriginal);
-      // Adicionar telefone ao payload
-      payload.telefone = telefone;
+      // Montar payload conforme DTO esperado pelo backend
+      const payload = {
+        sapiensId: selectedUser.id,
+        nome: nome,
+        email: email,
+        telefone: telefone,
+        cargo: cargo,
+        setores: setoresSelecionados.map(setor => ({
+          id: setor.id,
+          nome: setor.nome,
+          unidade: {
+            id: setor.unidade?.id,
+            nome: setor.unidade?.nome,
+          }
+        })),
+      };
+      
       await pautistaService.cadastrar(payload);
       setSuccess('Pautista cadastrado com sucesso!');
       carregarPautistas();
@@ -433,10 +537,19 @@ const Pautistas = () => {
               fullWidth
               options={searchResults.map(r => sapiensService.transformarParaExibicao(r))}
               getOptionLabel={(option) => option.nome || ''}
+              filterOptions={(options) => {
+                // Remove duplicatas baseado no id do usuário
+                const seen = new Set();
+                return options.filter(option => {
+                  if (seen.has(option.id)) return false;
+                  seen.add(option.id);
+                  return true;
+                });
+              }}
               loading={searchLoading}
               value={selectedUser}
               onChange={(event, newValue) => {
-                setSelectedUser(newValue);
+                handleUserSelect(newValue);
               }}
               onInputChange={(event, newInputValue) => {
                 setSearchTerm(newInputValue);
@@ -467,59 +580,115 @@ const Pautistas = () => {
                     component="li"
                     key={key}
                     {...otherProps}
-                    sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'flex-start !important',
-                      py: 1.5,
-                    }}
                   >
-                    <Typography variant="caption" color="textSecondary">
-                      {option.unidade?.nome}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {option.setor?.nome}
-                    </Typography>
-                    <Typography variant="body1" fontWeight={600}>
-                      {option.nome}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body1" fontWeight={600}>
+                        {option.nome}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {option.unidade?.nome}
+                      </Typography>
+                    </Box>
                   </Box>
                 );
               }}
             />
 
-            {/* Exibir dados do usuário selecionado */}
+            {/* Campos de Nome, Email e Telefone */}
             {selectedUser && (
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Usuário Selecionado
-                </Typography>
-                <Typography variant="h6" fontWeight={600}>
-                  {selectedUser.nome}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {selectedUser.email}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                  <strong>Setor:</strong> {selectedUser.setor?.nome}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  <strong>Unidade:</strong> {selectedUser.unidade?.nome}
-                </Typography>
-              </Box>
+              <>
+                <TextField
+                  fullWidth
+                  label="Nome"
+                  variant="outlined"
+                  value={nome}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  disabled
+                />
+
+                <TextField
+                  fullWidth
+                  label="Email"
+                  variant="outlined"
+                  value={email}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  disabled
+                />
+
+                <TextField
+                  fullWidth
+                  label="Telefone"
+                  variant="outlined"
+                  placeholder="(XX) XXXXX-XXXX"
+                  value={telefone}
+                  onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                  helperText="Digite o telefone do pautista"
+                />
+
+                <TextField
+                  select
+                  fullWidth
+                  required
+                  label="Cargo"
+                  variant="outlined"
+                  value={cargo}
+                  onChange={(e) => setCargo(e.target.value)}
+                >
+                  <MenuItem value="PREPOSTO">PREPOSTO</MenuItem>
+                  <MenuItem value="PROCURADOR">PROCURADOR</MenuItem>
+                </TextField>
+              </>
             )}
 
-            {/* Campo de telefone (preenchimento manual) */}
+            {/* Seção de Setores/Lotações */}
             {selectedUser && (
-              <TextField
-                fullWidth
-                label="Telefone"
-                variant="outlined"
-                placeholder="(XX) XXXXX-XXXX"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                helperText="Digite o telefone do pautista"
-              />
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                  Selecione os Setores *
+                </Typography>
+                
+                {loadingLotacoes ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : lotacoesDisponiveis.length > 0 ? (
+                  <FormGroup>
+                    {lotacoesDisponiveis.map((lotacao) => {
+                      const isSelected = setoresSelecionados.find(s => s.id === lotacao.id);
+                      return (
+                        <FormControlLabel
+                          key={lotacao.id}
+                          control={
+                            <Checkbox
+                              checked={!!isSelected}
+                              onChange={() => handleToggleSetor(lotacao)}
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2">
+                                {lotacao.nome}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {lotacao.unidade?.nome}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      );
+                    })}
+                  </FormGroup>
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    Nenhuma lotação encontrada
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
         </DialogContent>
@@ -536,7 +705,7 @@ const Pautistas = () => {
             onClick={handleSalvar}
             variant="contained"
             color="primary"
-            disabled={!selectedUser || saving}
+            disabled={!selectedUser || setoresSelecionados.length === 0 || !cargo || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
           </Button>

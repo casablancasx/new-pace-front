@@ -85,6 +85,26 @@ const getInitials = (nome) => {
   return names[0][0];
 };
 
+// Função para formatar telefone: (XX) XXXXX-XXXX
+const formatarTelefone = (valor) => {
+  if (!valor) return '';
+  
+  // Remove tudo que não é número
+  const apenas_numeros = valor.replace(/\D/g, '');
+  
+  // Limita a 11 dígitos
+  const limitado = apenas_numeros.slice(0, 11);
+  
+  // Aplica a máscara
+  if (limitado.length <= 2) {
+    return `(${limitado}`;
+  } else if (limitado.length <= 7) {
+    return `(${limitado.slice(0, 2)}) ${limitado.slice(2)}`;
+  } else {
+    return `(${limitado.slice(0, 2)}) ${limitado.slice(2, 7)}-${limitado.slice(7)}`;
+  }
+};
+
 const AvaliadorCard = ({ avaliador, onRemover }) => {
   const handleRemover = () => {
     onRemover(avaliador);
@@ -635,7 +655,7 @@ const Avaliadores = () => {
                   variant="outlined"
                   placeholder="(XX) XXXXX-XXXX"
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
                   helperText="Digite o telefone do avaliador"
                 />
               </>
