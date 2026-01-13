@@ -75,12 +75,42 @@ const normalizarResposta = (resposta) => {
 };
 
 /**
- * Array de opções para select/dropdown
+ * Array de opções para select/dropdown (excluindo ANALISE_PENDENTE)
  */
-export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR).map((item) => ({
-  value: item.value,
-  label: item.label,
-}));
+export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR)
+  .filter((item) => item.value !== 'ANALISE_PENDENTE')
+  .map((item) => ({
+    value: item.value,
+    label: item.label,
+  }));
+
+/**
+ * Opções de Subnúcleo
+ */
+export const SUBNUCLEO_OPTIONS = [
+  { value: 'SEAS', label: 'SEAS' },
+  { value: 'BI', label: 'BI' },
+  { value: 'TRU', label: 'TRU' },
+];
+
+/**
+ * Opções de Tipo Contestação
+ */
+export const TIPO_CONTESTACAO_OPTIONS = [
+  { value: 'TIPO_1', label: 'TIPO 1' },
+  { value: 'TIPO_2', label: 'TIPO 2' },
+  { value: 'TIPO_3', label: 'TIPO 3' },
+  { value: 'TIPO_4', label: 'TIPO 4' },
+  { value: 'TIPO_5', label: 'TIPO 5' },
+];
+
+/**
+ * Opções de Classe Judicial
+ */
+export const CLASSE_JUDICIAL_OPTIONS = [
+  { value: 'COMUM', label: 'COMUM' },
+  { value: 'JEF', label: 'JEF' },
+];
 
 /**
  * Função para obter a cor e descrição de uma resposta

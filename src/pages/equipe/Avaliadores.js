@@ -24,13 +24,14 @@ import {
   Slide,
   Alert,
   Snackbar,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
 } from '@mui/material';
 import {
   IconTrash,
   IconUserPlus,
   IconAlertTriangle,
-  IconPlus,
-  IconX,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
@@ -370,15 +371,13 @@ const Avaliadores = () => {
     }
   };
 
-  const handleAdicionarSetor = (setor) => {
-    // Verifica se o setor já foi adicionado
-    if (!setoresSelecionados.find(s => s.id === setor.id)) {
+  const handleToggleSetor = (setor) => {
+    const isSelected = setoresSelecionados.find(s => s.id === setor.id);
+    if (isSelected) {
+      setSetoresSelecionados(setoresSelecionados.filter(s => s.id !== setor.id));
+    } else {
       setSetoresSelecionados([...setoresSelecionados, setor]);
     }
-  };
-
-  const handleRemoverSetor = (setorId) => {
-    setSetoresSelecionados(setoresSelecionados.filter(s => s.id !== setorId));
   };
 
   const handleSalvar = async () => {
@@ -646,7 +645,7 @@ const Avaliadores = () => {
             {selectedUser && (
               <Box>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Setores Disponíveis
+                  Selecione os Setores
                 </Typography>
                 
                 {loadingLotacoes ? (
@@ -654,75 +653,38 @@ const Avaliadores = () => {
                     <CircularProgress size={24} />
                   </Box>
                 ) : lotacoesDisponiveis.length > 0 ? (
-                  <Stack spacing={1}>
+                  <FormGroup>
                     {lotacoesDisponiveis.map((lotacao) => {
-                      const isAdicionado = setoresSelecionados.find(s => s.id === lotacao.id);
+                      const isSelected = setoresSelecionados.find(s => s.id === lotacao.id);
                       return (
-                        <Box
+                        <FormControlLabel
                           key={lotacao.id}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            p: 1.5,
-                            bgcolor: isAdicionado ? 'success.lighter' : 'grey.100',
-                            borderRadius: 1,
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="body2" fontWeight={500}>
-                              {lotacao.nome}
-                            </Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              {lotacao.unidade?.nome}
-                            </Typography>
-                          </Box>
-                          {!isAdicionado ? (
-                            <Tooltip title="Adicionar setor">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleAdicionarSetor(lotacao)}
-                              >
-                                <IconPlus size={18} />
-                              </IconButton>
-                            </Tooltip>
-                          ) : (
-                            <Chip
-                              label="Adicionado"
-                              size="small"
-                              color="success"
+                          control={
+                            <Checkbox
+                              checked={!!isSelected}
+                              onChange={() => handleToggleSetor(lotacao)}
+                              color="primary"
                             />
-                          )}
-                        </Box>
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2">
+                                {lotacao.nome}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {lotacao.unidade?.nome}
+                              </Typography>
+                            </Box>
+                          }
+                        />
                       );
                     })}
-                  </Stack>
+                  </FormGroup>
                 ) : (
                   <Typography variant="body2" color="textSecondary">
                     Nenhuma lotação encontrada
                   </Typography>
                 )}
-              </Box>
-            )}
-
-            {/* Setores Selecionados */}
-            {setoresSelecionados.length > 0 && (
-              <Box>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Setores Selecionados ({setoresSelecionados.length})
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {setoresSelecionados.map((setor) => (
-                    <Chip
-                      key={setor.id}
-                      label={setor.nome}
-                      onDelete={() => handleRemoverSetor(setor.id)}
-                      deleteIcon={<IconX size={16} />}
-                      color="primary"
-                    />
-                  ))}
-                </Box>
               </Box>
             )}
           </Box>

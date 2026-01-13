@@ -22,13 +22,14 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Link,
 } from '@mui/material';
-import { IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowLeft, IconSearch } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import pautaService from '../../services/pautaService';
 import audienciaService from '../../services/audienciaService';
-import { RESPOSTA_ANALISE_OPTIONS, getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
+import { RESPOSTA_ANALISE_OPTIONS, SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -52,6 +53,9 @@ const DetalhesPauta = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAudiencia, setSelectedAudiencia] = useState(null);
   const [respostaAnalise, setRespostaAnalise] = useState('');
+  const [subnucleo, setSubnucleo] = useState('');
+  const [tipoContestacao, setTipoContestacao] = useState('');
+  const [classeJudicial, setClasseJudicial] = useState('');
   const [observacao, setObservacao] = useState('');
   const [salvando, setSalvando] = useState(false);
 
@@ -108,6 +112,9 @@ const DetalhesPauta = () => {
   const handleRowClick = (audiencia) => {
     setSelectedAudiencia(audiencia);
     setRespostaAnalise(audiencia.analiseAvaliador || '');
+    setSubnucleo(audiencia.subnucleo || '');
+    setTipoContestacao(audiencia.tipoContestacao || '');
+    setClasseJudicial(audiencia.classeJudicial || '');
     setObservacao(audiencia.observacao || '');
     setOpenDialog(true);
   };
@@ -116,6 +123,9 @@ const DetalhesPauta = () => {
     setOpenDialog(false);
     setSelectedAudiencia(null);
     setRespostaAnalise('');
+    setSubnucleo('');
+    setTipoContestacao('');
+    setClasseJudicial('');
     setObservacao('');
   };
 
@@ -127,14 +137,24 @@ const DetalhesPauta = () => {
       const audienciaAtualizada = await audienciaService.analisarAudiencia(
         selectedAudiencia.audienciaId,
         respostaAnalise,
-        observacao
+        subnucleo,
+        tipoContestacao,
+        classeJudicial,
+        observacao || ''
       );
 
       // Atualizar a audiência na lista local
       setAudiencias((prev) =>
         prev.map((a) =>
           a.audienciaId === selectedAudiencia.audienciaId
-            ? { ...a, analiseAvaliador: audienciaAtualizada.analiseAvaliador, observacao: audienciaAtualizada.observacao }
+            ? { 
+                ...a, 
+                analiseAvaliador: audienciaAtualizada.analiseAvaliador, 
+                subnucleo: audienciaAtualizada.subnucleo,
+                tipoContestacao: audienciaAtualizada.tipoContestacao,
+                classeJudicial: audienciaAtualizada.classeJudicial,
+                observacao: audienciaAtualizada.observacao 
+              }
             : a
         )
       );
@@ -449,12 +469,61 @@ const DetalhesPauta = () => {
             <TextField
               select
               fullWidth
+              required
               label="Resposta Análise"
               value={respostaAnalise}
               onChange={(e) => setRespostaAnalise(e.target.value)}
               variant="outlined"
             >
               {RESPOSTA_ANALISE_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              fullWidth
+              required
+              label="Subnúcleo"
+              value={subnucleo}
+              onChange={(e) => setSubnucleo(e.target.value)}
+              variant="outlined"
+            >
+              {SUBNUCLEO_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              fullWidth
+              required
+              label="Tipo Contestação"
+              value={tipoContestacao}
+              onChange={(e) => setTipoContestacao(e.target.value)}
+              variant="outlined"
+            >
+              {TIPO_CONTESTACAO_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              fullWidth
+              required
+              label="Classe Judicial"
+              value={classeJudicial}
+              onChange={(e) => setClasseJudicial(e.target.value)}
+              variant="outlined"
+            >
+              {CLASSE_JUDICIAL_OPTIONS.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>
@@ -469,27 +538,44 @@ const DetalhesPauta = () => {
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               variant="outlined"
-              placeholder="Digite uma observação..."
+              placeholder="Digite uma observação (opcional)..."
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button
-            onClick={handleCloseDialog}
-            variant="outlined"
-            color="inherit"
-            disabled={salvando}
+        <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
+          <Link
+            href={selectedAudiencia?.linkTarefaSapiens || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' }
+            }}
           >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSalvar}
-            variant="contained"
-            color="primary"
-            disabled={!respostaAnalise || salvando}
-          >
-            {salvando ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
-          </Button>
+            <IconSearch size={18} />
+            Consultar tarefa no Sapiens
+          </Link>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={handleCloseDialog}
+              variant="outlined"
+              color="inherit"
+              disabled={salvando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSalvar}
+              variant="contained"
+              color="primary"
+              disabled={!respostaAnalise || !subnucleo || !tipoContestacao || !classeJudicial || salvando}
+            >
+              {salvando ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

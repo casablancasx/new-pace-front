@@ -30,16 +30,22 @@ const audienciaService = {
   },
 
   /**
-   * Analisa uma audiência com resposta e observação
+   * Analisa uma audiência com resposta, subnúcleo, tipo contestação, classe judicial e observação
    * @param {number} audienciaId - ID da audiência
-   * @param {string} resposta - Resposta de análise (ANALISE_PENDENTE, COMPARECER, NAO_COMPARECER, CANCELADA, REDESIGNADA)
+   * @param {string} resposta - Resposta de análise (COMPARECER, NAO_COMPARECER, CANCELADA, REDESIGNADA)
+   * @param {string} subnucleo - Subnúcleo (SEAS, BI, TRU)
+   * @param {string} tipoContestacao - Tipo de contestação (TIPO_1, TIPO_2, TIPO_3, TIPO_4, TIPO_5)
+   * @param {string} classeJudicial - Classe judicial (COMUM, JEF)
    * @param {string} observacao - Observação/análise textual (pode ser vazia)
    * @returns {Promise<AudienciaEntity>}
    */
-  async analisarAudiencia(audienciaId, resposta, observacao = '') {
+  async analisarAudiencia(audienciaId, resposta, subnucleo, tipoContestacao, classeJudicial, observacao = '') {
     return api.put('/audiencia/analisar-audiencia', {
       audienciaId,
       resposta,
+      subnucleo,
+      tipoContestacao,
+      classeJudicial,
       observacao,
     });
   },
