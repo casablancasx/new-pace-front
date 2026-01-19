@@ -29,7 +29,7 @@ const AuthLogin = ({ title, subtitle, subtext }) => {
     // Navegar quando isAuthenticated mudar para true após login bem-sucedido
     useEffect(() => {
         if (loginSuccess && isAuthenticated) {
-            navigate('/pautas');
+            navigate('/dashboard');
         }
     }, [loginSuccess, isAuthenticated, navigate]);
 
