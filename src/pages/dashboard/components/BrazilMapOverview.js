@@ -28,10 +28,61 @@ const BrazilMapOverview = () => {
     // Lista ordenada de UFs
     const stateOrder = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
+    // Coordenadas centrais aproximadas de cada estado para posicionar os labels
+    const stateCoordinates = {
+        'AC': { x: '14%', y: '45%' },
+        'AL': { x: '88%', y: '48%' },
+        'AP': { x: '52%', y: '12%' },
+        'AM': { x: '25%', y: '28%' },
+        'BA': { x: '77%', y: '50%' },
+        'CE': { x: '84%', y: '32%' },
+        'DF': { x: '62%', y: '55%' },
+        'ES': { x: '80%', y: '63%' },
+        'GO': { x: '58%', y: '56%' },
+        'MA': { x: '68%', y: '28%' },
+        'MT': { x: '42%', y: '52%' },
+        'MS': { x: '45%', y: '68%' },
+        'MG': { x: '70%', y: '62%' },
+        'PA': { x: '48%', y: '25%' },
+        'PB': { x: '90%', y: '38%' },
+        'PR': { x: '55%', y: '78%' },
+        'PE': { x: '87%', y: '42%' },
+        'PI': { x: '74%', y: '35%' },
+        'RJ': { x: '77%', y: '70%' },
+        'RN': { x: '90%', y: '34%' },
+        'RS': { x: '52%', y: '90%' },
+        'RO': { x: '24%', y: '48%' },
+        'RR': { x: '28%', y: '8%' },
+        'SC': { x: '58%', y: '84%' },
+        'SP': { x: '63%', y: '72%' },
+        'SE': { x: '86%', y: '52%' },
+        'TO': { x: '60%', y: '40%' },
+    };
+
     const getSortedStatesData = () => {
         return stateOrder
             .map(uf => ({ uf, stateId: `BR-${uf}`, ...mapData[`BR-${uf}`] }))
-            .filter(state => state.pautas !== undefined || state.audiencias !== undefined);
+            .filter(state => state.pautas !== undefined || state.audiencias !== undefined)
+            .sort((a, b) => {
+                // Ordenar por quantidade total (pautas + audiências) decrescente
+                const totalA = (a.pautas || 0) + (a.audiencias || 0);
+                const totalB = (b.pautas || 0) + (b.audiencias || 0);
+                return totalB - totalA;
+            });
+    };
+
+    // Obter dados dos estados com valores para mostrar labels no mapa
+    const getStatesWithData = () => {
+        return Object.keys(mapData)
+            .filter(stateId => {
+                const data = mapData[stateId];
+                return data && ((data.pautas || 0) > 0 || (data.audiencias || 0) > 0);
+            })
+            .map(stateId => ({
+                stateId,
+                uf: stateId.replace('BR-', ''),
+                ...mapData[stateId]
+            }));
     };
 
     // Mock data function (replace with API call)
@@ -207,6 +258,69 @@ const BrazilMapOverview = () => {
                         `).join('\n')}
                     </style>
                     <BrazilMap />
+                    
+                    {/* Labels com informações diretamente no mapa */}
+                    {getStatesWithData().map((state) => {
+                        const coords = stateCoordinates[state.uf];
+                        if (!coords) return null;
+                        
+                        return (
+                            <Box
+                                key={state.stateId}
+                                sx={{
+                                    position: 'absolute',
+                                    left: coords.x,
+                                    top: coords.y,
+                                    transform: 'translate(-50%, -50%)',
+                                    backgroundColor: 'rgba(255,255,255,0.95)',
+                                    borderRadius: '6px',
+                                    padding: '3px 6px',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                    pointerEvents: 'none',
+                                    zIndex: 10,
+                                    minWidth: '40px',
+                                    textAlign: 'center',
+                                    border: `1px solid ${getColor(state.stateId)}`,
+                                }}
+                            >
+                                <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                        fontWeight: 'bold', 
+                                        fontSize: '9px',
+                                        display: 'block',
+                                        lineHeight: 1.2,
+                                        color: '#333'
+                                    }}
+                                >
+                                    {state.uf}
+                                </Typography>
+                                {metricMode === 'priority' ? (
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                            fontSize: '8px', 
+                                            lineHeight: 1,
+                                            color: '#666'
+                                        }}
+                                    >
+                                        {state.audiencias || 0}
+                                    </Typography>
+                                ) : (
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                            fontSize: '8px', 
+                                            lineHeight: 1,
+                                            color: '#666'
+                                        }}
+                                    >
+                                        {state.pautas || 0}/{state.audiencias || 0}
+                                    </Typography>
+                                )}
+                            </Box>
+                        );
+                    })}
                     
                     {hoveredState && mapData[hoveredState] && (
                         <Box
