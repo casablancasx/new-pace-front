@@ -161,8 +161,13 @@ const sapiensService = {
   },
 
   // Buscar setores na API do Sapiens
-  async buscarSetor(termo, unidadeId = 9) {
+  async buscarSetor(termo, unidadeId) {
     if (!termo || termo.length < 2) {
+      return [];
+    }
+
+    if (!unidadeId) {
+      console.error('unidadeId é obrigatório para buscar setor');
       return [];
     }
 
@@ -173,7 +178,7 @@ const sapiensService = {
       return [];
     }
 
-    // Busca por nome OU sigla do setor
+    // Busca por nome OU sigla do setor, filtrando pela unidade
     const where = {
       'unidade.id': `eq:${unidadeId}`,
       'parent': 'isNotNull',
@@ -183,16 +188,17 @@ const sapiensService = {
       ]
     };
 
-    const params = new URLSearchParams({
-      where: JSON.stringify(where),
-      limit: '30',
-      offset: '0',
-      order: '{}',
-      populate: JSON.stringify(['unidade', 'parent']),
-      context: '{}'
-    });
+    // Construir URL manualmente para evitar double-encoding
+    const queryParams = [
+      `where=${encodeURIComponent(JSON.stringify(where))}`,
+      `limit=30`,
+      `offset=0`,
+      `order=${encodeURIComponent('{}')}`,
+      `populate=${encodeURIComponent(JSON.stringify(['unidade', 'parent']))}`,
+      `context=${encodeURIComponent('{}')}`
+    ].join('&');
 
-    const url = `${SAPIENS_URL}/v1/administrativo/setor?${params.toString()}`;
+    const url = `${SAPIENS_URL}/v1/administrativo/setor?${queryParams}`;
     
     console.log('Buscando setor no Sapiens:', url);
     
@@ -279,6 +285,66 @@ const sapiensService = {
     }));
   },
 
+  // Buscar unidades PFPA na API do Sapiens
+  async buscarUnidadePFPA(termo) {
+    if (!termo || termo.length < 2) {
+      return [];
+    }
+
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.error('Token não encontrado');
+      return [];
+    }
+
+    // Unidades PFPA - setores com parent = null e busca pelo termo digitado
+    const where = {
+      'parent': 'isNull',
+      orX: [
+        { andX: [{ nome: `like:%${termo}%` }] },
+        { andX: [{ sigla: `like:%${termo}%` }] }
+      ]
+    };
+
+    // Construir URL manualmente para evitar double-encoding
+    const queryParams = [
+      `where=${encodeURIComponent(JSON.stringify(where))}`,
+      `limit=30`,
+      `offset=0`,
+      `order=${encodeURIComponent('{}')}`,
+      `populate=${encodeURIComponent('[]')}`,
+      `context=${encodeURIComponent('{}')}`
+    ].join('&');
+
+    const url = `${SAPIENS_URL}/v1/administrativo/setor?${queryParams}`;
+    
+    console.log('Buscando unidade PFPA no Sapiens:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Erro na resposta do Sapiens:', response.status, response.statusText);
+      throw new Error('Erro ao buscar unidades PFPA no Sapiens');
+    }
+
+    const data = await response.json();
+    console.log('Resultados unidade PFPA:', data);
+    
+    // Retorna apenas id, nome e sigla da unidade (conforme solicitado)
+    return (data.entities || []).map(entity => ({
+      id: entity.id,
+      nome: entity.nome,
+      sigla: entity.sigla || '',
+    }));
+  },
+
   // Buscar lotações de um colaborador na API do Sapiens
   async buscarLotacoesColaborador(colaboradorId) {
     if (!colaboradorId) {
@@ -332,6 +398,7 @@ const sapiensService = {
       unidade: {
         id: entity.setor?.unidade?.id,
         nome: entity.setor?.unidade?.nome || '',
+        sigla: entity.setor?.unidade?.sigla || '',
       },
     }));
   },

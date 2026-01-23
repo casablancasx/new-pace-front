@@ -395,6 +395,7 @@ const Pautistas = () => {
           unidade: {
             id: setor.unidade?.id,
             nome: setor.unidade?.nome,
+            sigla: setor.unidade?.sigla,
           }
         })),
       };

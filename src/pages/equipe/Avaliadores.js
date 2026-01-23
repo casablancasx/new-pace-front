@@ -24,9 +24,9 @@ import {
   Slide,
   Alert,
   Snackbar,
-  Radio,
-  RadioGroup,
+  Checkbox,
   FormControlLabel,
+  FormGroup,
 } from '@mui/material';
 import {
   IconTrash,
@@ -271,7 +271,7 @@ const Avaliadores = () => {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [lotacoesDisponiveis, setLotacoesDisponiveis] = useState([]);
-  const [setorSelecionado, setSetorSelecionado] = useState(null);
+  const [setoresSelecionados, setSetoresSelecionados] = useState([]);
   const [loadingLotacoes, setLoadingLotacoes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -341,7 +341,7 @@ const Avaliadores = () => {
     setEmail('');
     setTelefone('');
     setLotacoesDisponiveis([]);
-    setSetorSelecionado(null);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
@@ -355,7 +355,7 @@ const Avaliadores = () => {
     setEmail('');
     setTelefone('');
     setLotacoesDisponiveis([]);
-    setSetorSelecionado(null);
+    setSetoresSelecionados([]);
     setError('');
     setSuccess('');
   };
@@ -363,7 +363,7 @@ const Avaliadores = () => {
   // Buscar lotações quando um usuário é selecionado
   const handleUserSelect = async (newValue) => {
     setSelectedUser(newValue);
-    setSetorSelecionado(null);
+    setSetoresSelecionados([]);
     
     if (newValue) {
       // Preencher Nome e Email automaticamente
@@ -391,17 +391,20 @@ const Avaliadores = () => {
     }
   };
 
-  const handleSetorChange = (event) => {
-    const setorId = parseInt(event.target.value);
-    const setor = lotacoesDisponiveis.find(l => l.id === setorId);
-    setSetorSelecionado(setor);
+  const handleToggleSetor = (setor) => {
+    const isSelected = setoresSelecionados.find(s => s.id === setor.id);
+    if (isSelected) {
+      setSetoresSelecionados(setoresSelecionados.filter(s => s.id !== setor.id));
+    } else {
+      setSetoresSelecionados([...setoresSelecionados, setor]);
+    }
   };
 
   const handleSalvar = async () => {
     if (!selectedUser) return;
 
-    if (!setorSelecionado) {
-      setError('Selecione um setor');
+    if (setoresSelecionados.length === 0) {
+      setError('Selecione pelo menos um setor');
       return;
     }
 
@@ -416,14 +419,15 @@ const Avaliadores = () => {
         nome: nome,
         email: email,
         telefone: telefone,
-        setor: {
-          id: setorSelecionado.id,
-          nome: setorSelecionado.nome,
+        setores: setoresSelecionados.map(setor => ({
+          id: setor.id,
+          nome: setor.nome,
           unidade: {
-            id: setorSelecionado.unidade?.id,
-            nome: setorSelecionado.unidade?.nome,
+            id: setor.unidade?.id,
+            nome: setor.unidade?.nome,
+            sigla: setor.unidade?.sigla,
           }
-        },
+        })),
       };
       
       await avaliadorService.cadastrar(payload);
@@ -662,7 +666,7 @@ const Avaliadores = () => {
             {selectedUser && (
               <Box>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Selecione o Setor
+                  Selecione os Setores *
                 </Typography>
                 
                 {loadingLotacoes ? (
@@ -670,28 +674,33 @@ const Avaliadores = () => {
                     <CircularProgress size={24} />
                   </Box>
                 ) : lotacoesDisponiveis.length > 0 ? (
-                  <RadioGroup
-                    value={setorSelecionado?.id || ''}
-                    onChange={handleSetorChange}
-                  >
-                    {lotacoesDisponiveis.map((lotacao) => (
-                      <FormControlLabel
-                        key={lotacao.id}
-                        value={lotacao.id}
-                        control={<Radio color="primary" />}
-                        label={
-                          <Box>
-                            <Typography variant="body2">
-                              {lotacao.nome}
-                            </Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              {lotacao.unidade?.nome}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    ))}
-                  </RadioGroup>
+                  <FormGroup>
+                    {lotacoesDisponiveis.map((lotacao) => {
+                      const isSelected = setoresSelecionados.find(s => s.id === lotacao.id);
+                      return (
+                        <FormControlLabel
+                          key={lotacao.id}
+                          control={
+                            <Checkbox
+                              checked={!!isSelected}
+                              onChange={() => handleToggleSetor(lotacao)}
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2">
+                                {lotacao.nome}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                {lotacao.unidade?.nome}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      );
+                    })}
+                  </FormGroup>
                 ) : (
                   <Typography variant="body2" color="textSecondary">
                     Nenhuma lotação encontrada
@@ -714,7 +723,7 @@ const Avaliadores = () => {
             onClick={handleSalvar}
             variant="contained"
             color="primary"
-            disabled={!selectedUser || !setorSelecionado || saving}
+            disabled={!selectedUser || setoresSelecionados.length === 0 || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
           </Button>

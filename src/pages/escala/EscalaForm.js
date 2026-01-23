@@ -70,6 +70,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
   const [formData, setFormData] = useState({
     especieTarefa: null,
+    unidade: null,
     setorOrigem: null,
     dataInicio: '',
     dataFim: '',
@@ -83,6 +84,11 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [especieTarefaOptions, setEspecieTarefaOptions] = useState([]);
   const [especieTarefaSearchTerm, setEspecieTarefaSearchTerm] = useState('');
   const [especieTarefaLoading, setEspecieTarefaLoading] = useState(false);
+
+  // Estados para busca de unidade
+  const [unidadeOptions, setUnidadeOptions] = useState([]);
+  const [unidadeSearchTerm, setUnidadeSearchTerm] = useState('');
+  const [unidadeLoading, setUnidadeLoading] = useState(false);
 
   // Estados para busca de setor origem
   const [setorOrigemOptions, setSetorOrigemOptions] = useState([]);
@@ -128,7 +134,31 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     return () => clearTimeout(timeoutId);
   }, [especieTarefaSearchTerm]);
 
-  // Buscar setor origem com debounce
+  // Buscar unidades com filtro PFPA
+  useEffect(() => {
+    const buscar = async () => {
+      if (unidadeSearchTerm.length < 2) {
+        setUnidadeOptions([]);
+        return;
+      }
+
+      setUnidadeLoading(true);
+      try {
+        const results = await sapiensService.buscarUnidadePFPA(unidadeSearchTerm);
+        setUnidadeOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar unidades:', err);
+        setUnidadeOptions([]);
+      } finally {
+        setUnidadeLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(buscar, 500);
+    return () => clearTimeout(timeoutId);
+  }, [unidadeSearchTerm]);
+
+  // Buscar setor origem com debounce e filtro por unidade
   useEffect(() => {
     const buscar = async () => {
       if (setorOrigemSearchTerm.length < 2) {
@@ -136,9 +166,14 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
         return;
       }
 
+      if (!formData.unidade) {
+        setSetorOrigemOptions([]);
+        return;
+      }
+
       setSetorOrigemLoading(true);
       try {
-        const results = await sapiensService.buscarSetor(setorOrigemSearchTerm);
+        const results = await sapiensService.buscarSetor(setorOrigemSearchTerm, formData.unidade.id);
         setSetorOrigemOptions(results);
       } catch (err) {
         console.error('Erro ao buscar setores origem:', err);
@@ -150,7 +185,14 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
     const timeoutId = setTimeout(buscar, 500);
     return () => clearTimeout(timeoutId);
-  }, [setorOrigemSearchTerm]);
+  }, [setorOrigemSearchTerm, formData.unidade]);
+
+  // Limpar setor origem quando unidade mudar
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, setorOrigem: null }));
+    setSetorOrigemSearchTerm('');
+    setSetorOrigemOptions([]);
+  }, [formData.unidade]);
 
   // Buscar órgãos julgadores quando as UFs mudarem ou quando digitar
   useEffect(() => {
@@ -284,16 +326,16 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
       setDialog({ open: true, loading: false, message: 'Selecione uma Espécie Tarefa', success: false });
       return;
     }
+    if (!formData.unidade) {
+      setDialog({ open: true, loading: false, message: 'Selecione uma Unidade', success: false });
+      return;
+    }
     if (!formData.setorOrigem) {
       setDialog({ open: true, loading: false, message: 'Selecione um Setor Origem', success: false });
       return;
     }
     if (!formData.dataInicio || !formData.dataFim) {
       setDialog({ open: true, loading: false, message: 'Preencha as datas de início e fim', success: false });
-      return;
-    }
-    if (formData.pessoas.length === 0) {
-      setDialog({ open: true, loading: false, message: `Selecione pelo menos um ${isPautista ? 'pautista' : 'avaliador'}`, success: false });
       return;
     }
 
@@ -370,12 +412,47 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             )}
           />
 
+          {/* Unidade - Autocomplete com busca na API do Sapiens (filtro PFPA) */}
+          <Autocomplete
+            options={unidadeOptions}
+            getOptionLabel={(option) => `${option.nome}${option.sigla ? ` (${option.sigla})` : ''}`}
+            value={formData.unidade}
+            loading={unidadeLoading}
+            onChange={(event, newValue) => {
+              setFormData({ ...formData, unidade: newValue });
+            }}
+            onInputChange={(event, newInputValue) => {
+              setUnidadeSearchTerm(newInputValue);
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            noOptionsText={unidadeSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma unidade encontrada"}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Unidade"
+                variant="outlined"
+                fullWidth
+                placeholder="Digite para buscar unidade PFPA..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {unidadeLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+          />
+
           {/* Setor Origem - Autocomplete com busca na API do Sapiens */}
           <Autocomplete
             options={setorOrigemOptions}
             getOptionLabel={(option) => option.nome || ''}
             value={formData.setorOrigem}
             loading={setorOrigemLoading}
+            disabled={!formData.unidade}
             onChange={(event, newValue) => {
               setFormData({ ...formData, setorOrigem: newValue });
             }}
@@ -383,7 +460,13 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
               setSetorOrigemSearchTerm(newInputValue);
             }}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            noOptionsText={setorOrigemSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum setor encontrado"}
+            noOptionsText={
+              !formData.unidade 
+                ? "Selecione uma unidade primeiro" 
+                : setorOrigemSearchTerm.length < 2 
+                  ? "Digite pelo menos 2 caracteres" 
+                  : "Nenhum setor encontrado"
+            }
             renderOption={(props, option) => {
               const { key, ...otherProps } = props;
               return (
@@ -409,7 +492,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                 label="Setor Origem"
                 variant="outlined"
                 fullWidth
-                placeholder="Digite para buscar..."
+                placeholder={!formData.unidade ? "Selecione uma unidade primeiro" : "Digite para buscar..."}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
