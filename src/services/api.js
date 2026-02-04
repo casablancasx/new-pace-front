@@ -71,8 +71,10 @@ const api = {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Erro na requisição');
+      const errorBody = await response.json().catch(() => ({}));
+      // StandardError: { timestamp, status, error, message, path }
+      const errorMessage = errorBody.message || errorBody.error || `Erro na requisição (${response.status})`;
+      throw new Error(errorMessage);
     }
 
     // Retornar null para respostas sem corpo (204 No Content)

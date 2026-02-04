@@ -10,8 +10,11 @@ import {
   DialogActions,
   Button,
   Typography,
+  Switch,
+  FormControlLabel,
+  Tooltip,
 } from '@mui/material';
-import { IconCheck, IconX } from '@tabler/icons-react';
+import { IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react';
 import { IconPlayerPlay } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
@@ -78,6 +81,9 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     orgaoJulgadores: [],
     tipoContestacao: [],
     pessoas: [],
+    distribuicaoAutomaticaSetores: true,
+    unidadeDestino: null,
+    setorDestino: null,
   });
 
   // Estados para busca de espécie tarefa
@@ -94,6 +100,16 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [setorOrigemOptions, setSetorOrigemOptions] = useState([]);
   const [setorOrigemSearchTerm, setSetorOrigemSearchTerm] = useState('');
   const [setorOrigemLoading, setSetorOrigemLoading] = useState(false);
+
+  // Estados para busca de unidade destino
+  const [unidadeDestinoOptions, setUnidadeDestinoOptions] = useState([]);
+  const [unidadeDestinoSearchTerm, setUnidadeDestinoSearchTerm] = useState('');
+  const [unidadeDestinoLoading, setUnidadeDestinoLoading] = useState(false);
+
+  // Estados para busca de setor destino
+  const [setorDestinoOptions, setSetorDestinoOptions] = useState([]);
+  const [setorDestinoSearchTerm, setSetorDestinoSearchTerm] = useState('');
+  const [setorDestinoLoading, setSetorDestinoLoading] = useState(false);
 
   // Estados para busca de órgão julgador
   const [orgaoJulgadorOptions, setOrgaoJulgadorOptions] = useState([]);
@@ -193,6 +209,81 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     setSetorOrigemSearchTerm('');
     setSetorOrigemOptions([]);
   }, [formData.unidade]);
+
+  // Buscar unidades destino com filtro PFPA
+  useEffect(() => {
+    const buscar = async () => {
+      if (formData.distribuicaoAutomaticaSetores) return;
+      
+      if (unidadeDestinoSearchTerm.length < 2) {
+        setUnidadeDestinoOptions([]);
+        return;
+      }
+
+      setUnidadeDestinoLoading(true);
+      try {
+        const results = await sapiensService.buscarUnidadePFPA(unidadeDestinoSearchTerm);
+        setUnidadeDestinoOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar unidades destino:', err);
+        setUnidadeDestinoOptions([]);
+      } finally {
+        setUnidadeDestinoLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(buscar, 500);
+    return () => clearTimeout(timeoutId);
+  }, [unidadeDestinoSearchTerm, formData.distribuicaoAutomaticaSetores]);
+
+  // Buscar setor destino com debounce e filtro por unidade destino
+  useEffect(() => {
+    const buscar = async () => {
+      if (formData.distribuicaoAutomaticaSetores) return;
+      
+      if (setorDestinoSearchTerm.length < 2) {
+        setSetorDestinoOptions([]);
+        return;
+      }
+
+      if (!formData.unidadeDestino) {
+        setSetorDestinoOptions([]);
+        return;
+      }
+
+      setSetorDestinoLoading(true);
+      try {
+        const results = await sapiensService.buscarSetor(setorDestinoSearchTerm, formData.unidadeDestino.id);
+        setSetorDestinoOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar setores destino:', err);
+        setSetorDestinoOptions([]);
+      } finally {
+        setSetorDestinoLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(buscar, 500);
+    return () => clearTimeout(timeoutId);
+  }, [setorDestinoSearchTerm, formData.unidadeDestino, formData.distribuicaoAutomaticaSetores]);
+
+  // Limpar setor destino quando unidade destino mudar
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, setorDestino: null }));
+    setSetorDestinoSearchTerm('');
+    setSetorDestinoOptions([]);
+  }, [formData.unidadeDestino]);
+
+  // Limpar campos de destino quando ativar distribuição automática
+  useEffect(() => {
+    if (formData.distribuicaoAutomaticaSetores) {
+      setFormData(prev => ({ ...prev, unidadeDestino: null, setorDestino: null }));
+      setUnidadeDestinoSearchTerm('');
+      setSetorDestinoSearchTerm('');
+      setUnidadeDestinoOptions([]);
+      setSetorDestinoOptions([]);
+    }
+  }, [formData.distribuicaoAutomaticaSetores]);
 
   // Buscar órgãos julgadores quando as UFs mudarem ou quando digitar
   useEffect(() => {
@@ -363,10 +454,17 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
       // setFormData({ ... });
     } catch (error) {
       console.error('Erro ao escalar:', error);
+      // Extrair mensagem de erro do backend (StandardError)
+      let errorMessage = 'Erro ao processar escala';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       setDialog({ 
         open: true, 
         loading: false, 
-        message: error.message || 'Erro ao processar escala', 
+        message: errorMessage, 
         success: false 
       });
     } finally {
@@ -505,6 +603,143 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
               />
             )}
           />
+
+          {/* Switch Distribuição Automática entre Setores */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.distribuicaoAutomaticaSetores}
+                  onChange={(e) =>
+                    setFormData({ ...formData, distribuicaoAutomaticaSetores: e.target.checked })
+                  }
+                  color="primary"
+                />
+              }
+              label="Distribuição Automática entre Setores"
+            />
+            <Tooltip
+              title="Quando ativada, a escala considerará automaticamente o subnúcleo da audiência para definir em qual setor a tarefa será cadastrada. Desative para definir manualmente a unidade e setor de destino."
+              arrow
+              placement="right"
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: '#f5f5f5',
+                    color: '#000',
+                    fontSize: '0.875rem',
+                    border: '1px solid #ccc',
+                    '& .MuiTooltip-arrow': {
+                      color: '#f5f5f5',
+                    },
+                  },
+                },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                <IconInfoCircle size={20} color="#1976d2" />
+              </Box>
+            </Tooltip>
+          </Box>
+
+          {/* Campos de Unidade e Setor Destino - aparecem quando distribuição automática está desativada */}
+          {!formData.distribuicaoAutomaticaSetores && (
+            <>
+              {/* Unidade Destino */}
+              <Autocomplete
+                options={unidadeDestinoOptions}
+                getOptionLabel={(option) => `${option.nome}${option.sigla ? ` (${option.sigla})` : ''}`}
+                value={formData.unidadeDestino}
+                loading={unidadeDestinoLoading}
+                onChange={(event, newValue) => {
+                  setFormData({ ...formData, unidadeDestino: newValue });
+                }}
+                onInputChange={(event, newInputValue) => {
+                  setUnidadeDestinoSearchTerm(newInputValue);
+                }}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText={unidadeDestinoSearchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma unidade encontrada"}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Unidade Destino"
+                    variant="outlined"
+                    fullWidth
+                    placeholder="Digite para buscar unidade destino..."
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {unidadeDestinoLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+
+              {/* Setor Destino */}
+              <Autocomplete
+                options={setorDestinoOptions}
+                getOptionLabel={(option) => option.nome || ''}
+                value={formData.setorDestino}
+                loading={setorDestinoLoading}
+                disabled={!formData.unidadeDestino}
+                onChange={(event, newValue) => {
+                  setFormData({ ...formData, setorDestino: newValue });
+                }}
+                onInputChange={(event, newInputValue) => {
+                  setSetorDestinoSearchTerm(newInputValue);
+                }}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText={
+                  !formData.unidadeDestino 
+                    ? "Selecione uma unidade destino primeiro" 
+                    : setorDestinoSearchTerm.length < 2 
+                      ? "Digite pelo menos 2 caracteres" 
+                      : "Nenhum setor encontrado"
+                }
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props;
+                  return (
+                    <Box
+                      component="li"
+                      key={key}
+                      {...otherProps}
+                      sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'flex-start !important',
+                        py: 1.5,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>{option.nome}</span>
+                      <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.unidadeNome}</span>
+                    </Box>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Setor Destino"
+                    variant="outlined"
+                    fullWidth
+                    placeholder={!formData.unidadeDestino ? "Selecione uma unidade destino primeiro" : "Digite para buscar..."}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {setorDestinoLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </>
+          )}
 
           {/* Data Início */}
           <TextField

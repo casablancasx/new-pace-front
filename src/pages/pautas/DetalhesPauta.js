@@ -393,6 +393,7 @@ const DetalhesPauta = () => {
                         size="small"
                         label={getRespostaAnaliseDescricao(audiencia.analiseAvaliador) || 'Pendente'}
                         color={getRespostaAnaliseColor(audiencia.analiseAvaliador)}
+                        sx={{ minWidth: 120, justifyContent: 'center' }}
                       />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200, wordWrap: 'break-word', whiteSpace: 'normal' }}>

@@ -34,6 +34,8 @@ const escalaService = {
       orgaoJulgadorIds: orgaoJulgadorIds?.length > 0 ? orgaoJulgadorIds : null,
       avaliadorIds: avaliadorIds?.length > 0 ? avaliadorIds : null,
       pautistaIds: null,
+      distribuicaoManualSetores: !dados.distribuicaoAutomaticaSetores,
+      setorDestinoId: dados.setorDestino?.id || null,
     };
 
     return api.post('/escalar/avaliadores', payload);
@@ -72,6 +74,8 @@ const escalaService = {
       orgaoJulgadorIds: orgaoJulgadorIds?.length > 0 ? orgaoJulgadorIds : null,
       avaliadorIds: null,
       pautistaIds: pautistaIds?.length > 0 ? pautistaIds : null,
+      distribuicaoManualSetores: !dados.distribuicaoAutomaticaSetores,
+      setorDestinoId: dados.setorDestino?.id || null,
     };
 
     return api.post('/escalar/pautistas', payload);

@@ -39,6 +39,13 @@ export const RESPOSTA_ANALISE_AVALIADOR = {
     color: 'warning', // Amarelo
     hexColor: '#FF9800',
   },
+  NAO_ESCALADA: {
+    value: 'NAO_ESCALADA',
+    label: 'Não Escalada',
+    descricao: 'Não Escalada',
+    color: 'error', // Vermelho
+    hexColor: '#F44336',
+  },
 };
 
 /**
