@@ -16,6 +16,12 @@ const BaseCard = (props) => {
       sx={{
         p: 0,
         width: "100%",
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
+        transition: 'box-shadow 0.3s ease-in-out',
+        '&:hover': {
+          boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
+        },
       }}
     >
       <Box p={2} display="flex" alignItems="center">

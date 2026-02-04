@@ -259,69 +259,6 @@ const BrazilMapOverview = () => {
                     </style>
                     <BrazilMap />
                     
-                    {/* Labels com informações diretamente no mapa */}
-                    {getStatesWithData().map((state) => {
-                        const coords = stateCoordinates[state.uf];
-                        if (!coords) return null;
-                        
-                        return (
-                            <Box
-                                key={state.stateId}
-                                sx={{
-                                    position: 'absolute',
-                                    left: coords.x,
-                                    top: coords.y,
-                                    transform: 'translate(-50%, -50%)',
-                                    backgroundColor: 'rgba(255,255,255,0.95)',
-                                    borderRadius: '6px',
-                                    padding: '3px 6px',
-                                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                                    pointerEvents: 'none',
-                                    zIndex: 10,
-                                    minWidth: '40px',
-                                    textAlign: 'center',
-                                    border: `1px solid ${getColor(state.stateId)}`,
-                                }}
-                            >
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        fontWeight: 'bold', 
-                                        fontSize: '9px',
-                                        display: 'block',
-                                        lineHeight: 1.2,
-                                        color: '#333'
-                                    }}
-                                >
-                                    {state.uf}
-                                </Typography>
-                                {metricMode === 'priority' ? (
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                            fontSize: '8px', 
-                                            lineHeight: 1,
-                                            color: '#666'
-                                        }}
-                                    >
-                                        {state.audiencias || 0}
-                                    </Typography>
-                                ) : (
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                            fontSize: '8px', 
-                                            lineHeight: 1,
-                                            color: '#666'
-                                        }}
-                                    >
-                                        {state.pautas || 0}/{state.audiencias || 0}
-                                    </Typography>
-                                )}
-                            </Box>
-                        );
-                    })}
-                    
                     {hoveredState && mapData[hoveredState] && (
                         <Box
                             sx={{

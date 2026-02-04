@@ -15,8 +15,18 @@ const DashboardCard = ({
 
   return (
     <Card
-      sx={{ padding: 0, width: '100%', overflow: 'visible' }}
-      elevation={9}
+      sx={{ 
+        padding: 0, 
+        width: '100%', 
+        overflow: 'visible',
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
+        transition: 'box-shadow 0.3s ease-in-out',
+        '&:hover': {
+          boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
+        },
+      }}
+      elevation={0}
       variant={undefined}
     >
       {cardheading ? (
