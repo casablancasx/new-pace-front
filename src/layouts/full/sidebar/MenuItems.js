@@ -150,6 +150,14 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
+    title: 'Relatório',
+    icon: IconChartHistogram,
+    href: '/relatorio',
+    roles: ['ADMIN'],
+    chip: 'Novo',
+  },
+  {
+    id: uniqueId(),
     title: 'Controle de Usuários',
     icon: IconSettings,
     href: '/usuarios',

@@ -36,6 +36,7 @@ const AdvogadosPrioritarios = lazy(() => import("../pages/audiencias/AdvogadosPr
 const Avaliadores = lazy(() => import("../pages/equipe/Avaliadores"));
 const Pautistas = lazy(() => import("../pages/equipe/Pautistas"));
 const ControleUsuarios = lazy(() => import("../pages/usuarios/ControleUsuarios"));
+const Relatorio = lazy(() => import("../pages/relatorio/Relatorio"));
 
 const Router = [
   {
@@ -73,6 +74,11 @@ const Router = [
       { path: '/pautas/:id', exact: true, element: <DetalhesPauta /> },
       { path: '/audiencias', exact: true, element: <Audiencias /> },
       { path: '/advogados-prioritarios', exact: true, element: <AdvogadosPrioritarios /> },
+      { 
+        path: '/relatorio', 
+        exact: true, 
+        element: <ProtectedRoute allowedRoles={['ADMIN']}><Relatorio /></ProtectedRoute> 
+      },
       { 
         path: '/usuarios', 
         exact: true, 
