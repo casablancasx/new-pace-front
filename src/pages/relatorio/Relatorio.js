@@ -56,9 +56,9 @@ const ContestacaoChart = ({ contestacoes }) => {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
 
-  const categories = contestacoes.map(item => item.tipo || '-');
+  const categories = contestacoes.map(item => item.descricao || '-');
   const data = contestacoes.map(item => item.total || 0);
-  const chartHeight = Math.max(300, contestacoes.length * 50);
+  const chartHeight = Math.max(300, contestacoes.length * 60);
 
   const chartOptions = {
     chart: {
@@ -71,7 +71,7 @@ const ContestacaoChart = ({ contestacoes }) => {
     plotOptions: {
       bar: {
         horizontal: true,
-        barHeight: '70%',
+        barHeight: '60%',
         borderRadius: 6,
         borderRadiusApplication: 'end',
       },
@@ -86,6 +86,9 @@ const ContestacaoChart = ({ contestacoes }) => {
       strokeDashArray: 3,
       xaxis: { lines: { show: true } },
       yaxis: { lines: { show: false } },
+      padding: {
+        left: 20,
+      },
     },
     xaxis: {
       categories: categories,
@@ -93,7 +96,12 @@ const ContestacaoChart = ({ contestacoes }) => {
     },
     yaxis: {
       labels: {
-        style: { fontSize: '13px' },
+        show: true,
+        style: { 
+          fontSize: '13px',
+          fontWeight: 500,
+        },
+        maxWidth: 200,
       },
     },
     tooltip: {
