@@ -10,11 +10,11 @@ const escalaService = {
     const ufs = dados.unidadesFederativas?.map(uf => uf.value);
     const tipoContestacao = dados.tipoContestacao?.map(tc => {
       const mapping = {
-        'TIPO_1': 'TIPO1',
-        'TIPO_2': 'TIPO2',
-        'TIPO_3': 'TIPO3',
-        'TIPO_4': 'TIPO4',
-        'TIPO_5': 'TIPO5',
+        'TIPO1': 'TIPO1',
+        'TIPO2': 'TIPO2',
+        'TIPO3': 'TIPO3',
+        'TIPO4': 'TIPO4',
+        'TIPO5': 'TIPO5',
         'SEM_TIPO': 'SEM_TIPO',
         'SEM_CONTESTACAO': 'SEM_CONTESTACAO',
       };
@@ -50,11 +50,11 @@ const escalaService = {
     const ufs = dados.unidadesFederativas?.map(uf => uf.value);
     const tipoContestacao = dados.tipoContestacao?.map(tc => {
       const mapping = {
-        'TIPO_1': 'TIPO1',
-        'TIPO_2': 'TIPO2',
-        'TIPO_3': 'TIPO3',
-        'TIPO_4': 'TIPO4',
-        'TIPO_5': 'TIPO5',
+        'TIPO1': 'TIPO1',
+        'TIPO2': 'TIPO2',
+        'TIPO3': 'TIPO3',
+        'TIPO4': 'TIPO4',
+        'TIPO5': 'TIPO5',
         'SEM_TIPO': 'SEM_TIPO',
         'SEM_CONTESTACAO': 'SEM_CONTESTACAO',
       };

@@ -20,13 +20,13 @@ const usuarioService = {
     const response = await api.get(`/usuarios?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo frontend
+    // Nota: backend retorna "sotores" (typo) ao invés de "setores"
     const content = (response.content || []).map(item => ({
       id: item.id,
       nome: item.nome,
       email: item.email,
       telefone: item.telefone,
-      setor: item.setor || '',
-      unidade: item.unidade || '',
+      setores: item.sotores || item.setores || [],
       role: item.role,
       isContaAtiva: item.isContaAtiva,
     }));

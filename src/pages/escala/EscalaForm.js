@@ -56,11 +56,11 @@ const unidadesFederativasOptions = [
 ];
 
 const tipoContestacaoOptions = [
-  { label: 'TIPO 1', value: 'TIPO_1' },
-  { label: 'TIPO 2', value: 'TIPO_2' },
-  { label: 'TIPO 3', value: 'TIPO_3' },
-  { label: 'TIPO 4', value: 'TIPO_4' },
-  { label: 'TIPO 5', value: 'TIPO_5' },
+  { label: 'TIPO 1', value: 'TIPO1' },
+  { label: 'TIPO 2', value: 'TIPO2' },
+  { label: 'TIPO 3', value: 'TIPO3' },
+  { label: 'TIPO 4', value: 'TIPO4' },
+  { label: 'TIPO 5', value: 'TIPO5' },
   { label: 'SEM TIPO', value: 'SEM_TIPO' },
   { label: 'SEM CONTESTAÇÃO', value: 'SEM_CONTESTACAO' },
 ];

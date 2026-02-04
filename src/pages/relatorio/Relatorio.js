@@ -162,14 +162,9 @@ const Relatorio = () => {
   // Buscar usuários com debounce
   useEffect(() => {
     const buscar = async () => {
-      if (usuarioSearchTerm.length < 2) {
-        setUsuarioOptions([]);
-        return;
-      }
-
       setUsuarioLoading(true);
       try {
-        const response = await usuarioService.listar(0, 50, usuarioSearchTerm);
+        const response = await usuarioService.listar(0, 50, usuarioSearchTerm || '');
         setUsuarioOptions(response.content || []);
       } catch (err) {
         console.error('Erro ao buscar usuários:', err);
@@ -183,17 +178,27 @@ const Relatorio = () => {
     return () => clearTimeout(timeoutId);
   }, [usuarioSearchTerm]);
 
+  // Função para carregar usuários ao clicar no campo
+  const handleUsuarioFocus = async () => {
+    if (usuarioOptions.length === 0) {
+      setUsuarioLoading(true);
+      try {
+        const response = await usuarioService.listar(0, 50, '');
+        setUsuarioOptions(response.content || []);
+      } catch (err) {
+        console.error('Erro ao buscar usuários:', err);
+      } finally {
+        setUsuarioLoading(false);
+      }
+    }
+  };
+
   // Buscar órgãos julgadores com debounce
   useEffect(() => {
     const buscar = async () => {
-      if (orgaoJulgadorSearchTerm.length < 2) {
-        setOrgaoJulgadorOptions([]);
-        return;
-      }
-
       setOrgaoJulgadorLoading(true);
       try {
-        const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm, [], 0, 50);
+        const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '', [], 0, 50);
         setOrgaoJulgadorOptions(results);
       } catch (err) {
         console.error('Erro ao buscar órgãos julgadores:', err);
@@ -206,6 +211,21 @@ const Relatorio = () => {
     const timeoutId = setTimeout(buscar, 500);
     return () => clearTimeout(timeoutId);
   }, [orgaoJulgadorSearchTerm]);
+
+  // Função para carregar órgãos julgadores ao clicar no campo
+  const handleOrgaoJulgadorFocus = async () => {
+    if (orgaoJulgadorOptions.length === 0) {
+      setOrgaoJulgadorLoading(true);
+      try {
+        const results = await orgaoJulgadorService.buscar('', [], 0, 50);
+        setOrgaoJulgadorOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar órgãos julgadores:', err);
+      } finally {
+        setOrgaoJulgadorLoading(false);
+      }
+    }
+  };
 
   const handleBuscar = async (newPage = 0) => {
     if (!formData.dataInicio || !formData.dataFim) {
@@ -316,6 +336,7 @@ const Relatorio = () => {
                   getOptionLabel={(option) => option.nome || ''}
                   value={formData.usuario}
                   loading={usuarioLoading}
+                  onOpen={handleUsuarioFocus}
                   onChange={(event, newValue) => setFormData({ ...formData, usuario: newValue })}
                   onInputChange={(event, newInputValue) => setUsuarioSearchTerm(newInputValue)}
                   isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -343,6 +364,7 @@ const Relatorio = () => {
                   getOptionLabel={(option) => option.nome || ''}
                   value={formData.orgaoJulgador}
                   loading={orgaoJulgadorLoading}
+                  onOpen={handleOrgaoJulgadorFocus}
                   onChange={(event, newValue) => setFormData({ ...formData, orgaoJulgador: newValue })}
                   onInputChange={(event, newInputValue) => setOrgaoJulgadorSearchTerm(newInputValue)}
                   isOptionEqualToValue={(option, value) => option.id === value.id}

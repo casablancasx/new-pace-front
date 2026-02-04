@@ -95,20 +95,20 @@ export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR
  * Opções de Subnúcleo
  */
 export const SUBNUCLEO_OPTIONS = [
-  { value: 'SEAS', label: 'SEAS' },
-  { value: 'BI', label: 'BI' },
-  { value: 'TRU', label: 'TRU' },
+  { value: 'ESEAS', label: 'ESEAS' },
+  { value: 'EBI', label: 'EBI' },
+  { value: 'ERU', label: 'ERU' },
 ];
 
 /**
  * Opções de Tipo Contestação
  */
 export const TIPO_CONTESTACAO_OPTIONS = [
-  { value: 'TIPO_1', label: 'TIPO 1' },
-  { value: 'TIPO_2', label: 'TIPO 2' },
-  { value: 'TIPO_3', label: 'TIPO 3' },
-  { value: 'TIPO_4', label: 'TIPO 4' },
-  { value: 'TIPO_5', label: 'TIPO 5' },
+  { value: 'TIPO1', label: 'TIPO 1' },
+  { value: 'TIPO2', label: 'TIPO 2' },
+  { value: 'TIPO3', label: 'TIPO 3' },
+  { value: 'TIPO4', label: 'TIPO 4' },
+  { value: 'TIPO5', label: 'TIPO 5' },
 ];
 
 /**
