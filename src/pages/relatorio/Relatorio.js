@@ -431,8 +431,7 @@ const Relatorio = () => {
                 variant="outlined"
                 color="success"
                 startIcon={<IconFileSpreadsheet size={18} />}
-                onClick={() => {}}
-                disabled={loading || !buscaRealizada}
+                disabled={true}
               >
                 Gerar Excel
               </Button>
