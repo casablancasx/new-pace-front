@@ -24,7 +24,7 @@ import PageContainer from 'src/components/container/PageContainer';
 import relatorioService from '../../services/relatorioService';
 import usuarioService from '../../services/usuarioService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
-import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
+import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, VIEW_RELATORIO_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
 
 // Card customizado com mais sombra e bordas arredondadas
 const StyledCard = styled(Card)(() => ({
@@ -125,6 +125,278 @@ const ContestacaoChart = ({ contestacoes }) => {
   );
 };
 
+// Componente de gráfico de pizza para Setores
+const SetoresChart = ({ setores }) => {
+  const theme = useTheme();
+
+  // Ordenar por total decrescente
+  const sortedSetores = [...setores].sort((a, b) => b.total - a.total);
+  const labels = sortedSetores.map(item => item.setor || '-');
+  const data = sortedSetores.map(item => item.total || 0);
+  const total = data.reduce((acc, val) => acc + val, 0);
+
+  const colors = [
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.info.main,
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#84cc16',
+  ];
+
+  const chartOptions = {
+    chart: {
+      type: 'donut',
+      fontFamily: "'Plus Jakarta Sans', sans-serif;",
+      foreColor: '#adb0bb',
+    },
+    colors: colors,
+    labels: labels,
+    dataLabels: {
+      enabled: true,
+      formatter: (val) => `${val.toFixed(0)}%`,
+      style: {
+        fontSize: '12px',
+        fontWeight: 600,
+      },
+      dropShadow: { enabled: false },
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '55%',
+          labels: {
+            show: true,
+            name: {
+              show: true,
+              fontSize: '14px',
+              fontWeight: 600,
+            },
+            value: {
+              show: true,
+              fontSize: '20px',
+              fontWeight: 700,
+              formatter: (val) => parseInt(val).toLocaleString('pt-BR'),
+            },
+            total: {
+              show: true,
+              label: 'Total',
+              fontSize: '14px',
+              fontWeight: 600,
+              formatter: () => total.toLocaleString('pt-BR'),
+            },
+          },
+        },
+      },
+    },
+    legend: { show: false },
+    tooltip: {
+      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
+      y: {
+        formatter: (val) => val.toLocaleString('pt-BR'),
+      },
+    },
+    stroke: {
+      show: true,
+      width: 3,
+      colors: [theme.palette.background.paper],
+    },
+  };
+
+  return (
+    <Box>
+      <Chart
+        options={chartOptions}
+        series={data}
+        type="donut"
+        height={280}
+        width="100%"
+      />
+      {/* Legenda customizada com cores e totais */}
+      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {sortedSetores.map((item, index) => {
+          const percentage = total > 0 ? ((item.total / total) * 100).toFixed(1) : 0;
+          return (
+            <Box 
+              key={index} 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box 
+                  sx={{ 
+                    width: 12, 
+                    height: 12, 
+                    borderRadius: '50%', 
+                    bgcolor: colors[index % colors.length],
+                    flexShrink: 0,
+                  }} 
+                />
+                <Typography variant="body2" fontWeight={500}>
+                  {item.setor || '-'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" color="textSecondary">
+                  {percentage}%
+                </Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ minWidth: 50, textAlign: 'right' }}>
+                  {(item.total || 0).toLocaleString('pt-BR')}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+};
+
+// Componente de gráfico de pizza para Subnúcleos
+const SubnucleosChart = ({ subnucleos }) => {
+  const theme = useTheme();
+
+  // Ordenar por total decrescente
+  const sortedSubnucleos = [...subnucleos].sort((a, b) => b.total - a.total);
+  const labels = sortedSubnucleos.map(item => item.subnucleo || '-');
+  const data = sortedSubnucleos.map(item => item.total || 0);
+  const total = data.reduce((acc, val) => acc + val, 0);
+
+  const colors = [
+    theme.palette.success.main,
+    theme.palette.warning.main,
+    theme.palette.info.main,
+    theme.palette.error.main,
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+  ];
+
+  const chartOptions = {
+    chart: {
+      type: 'donut',
+      fontFamily: "'Plus Jakarta Sans', sans-serif;",
+      foreColor: '#adb0bb',
+    },
+    colors: colors,
+    labels: labels,
+    dataLabels: {
+      enabled: true,
+      formatter: (val) => `${val.toFixed(0)}%`,
+      style: {
+        fontSize: '12px',
+        fontWeight: 600,
+      },
+      dropShadow: { enabled: false },
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '55%',
+          labels: {
+            show: true,
+            name: {
+              show: true,
+              fontSize: '14px',
+              fontWeight: 600,
+            },
+            value: {
+              show: true,
+              fontSize: '20px',
+              fontWeight: 700,
+              formatter: (val) => parseInt(val).toLocaleString('pt-BR'),
+            },
+            total: {
+              show: true,
+              label: 'Total',
+              fontSize: '14px',
+              fontWeight: 600,
+              formatter: () => total.toLocaleString('pt-BR'),
+            },
+          },
+        },
+      },
+    },
+    legend: { show: false },
+    tooltip: {
+      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
+      y: {
+        formatter: (val) => val.toLocaleString('pt-BR'),
+      },
+    },
+    stroke: {
+      show: true,
+      width: 3,
+      colors: [theme.palette.background.paper],
+    },
+  };
+
+  return (
+    <Box>
+      <Chart
+        options={chartOptions}
+        series={data}
+        type="donut"
+        height={280}
+        width="100%"
+      />
+      {/* Legenda customizada com cores e totais */}
+      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {sortedSubnucleos.map((item, index) => {
+          const percentage = total > 0 ? ((item.total / total) * 100).toFixed(1) : 0;
+          return (
+            <Box 
+              key={index} 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box 
+                  sx={{ 
+                    width: 12, 
+                    height: 12, 
+                    borderRadius: '50%', 
+                    bgcolor: colors[index % colors.length],
+                    flexShrink: 0,
+                  }} 
+                />
+                <Typography variant="body2" fontWeight={500}>
+                  {item.subnucleo || '-'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" color="textSecondary">
+                  {percentage}%
+                </Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ minWidth: 50, textAlign: 'right' }}>
+                  {(item.total || 0).toLocaleString('pt-BR')}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+};
+
 const Relatorio = () => {
   // Estado do formulário
   const [formData, setFormData] = useState({
@@ -135,6 +407,7 @@ const Relatorio = () => {
     tipoContestacao: '',
     subnucleo: '',
     classeJudicial: '',
+    viewRelatorio: 'ESCALA',
   });
 
   // Estados para busca de usuário
@@ -158,6 +431,10 @@ const Relatorio = () => {
   // Estados para contestação e totais
   const [contestacoes, setContestacoes] = useState([]);
   const [totais, setTotais] = useState({ totalAudiencias: 0, totalPautas: 0 });
+
+  // Estados para setores e subnúcleos
+  const [setores, setSetores] = useState([]);
+  const [subnucleos, setSubnucleos] = useState([]);
 
   // Buscar usuários com debounce
   useEffect(() => {
@@ -245,12 +522,15 @@ const Relatorio = () => {
         tipoContestacao: formData.tipoContestacao || null,
         subnucleo: formData.subnucleo || null,
         classeJudicial: formData.classeJudicial || null,
+        view: formData.viewRelatorio || 'ESCALA',
       };
 
-      const [escalaResponse, contestacaoResponse, totaisResponse] = await Promise.all([
+      const [escalaResponse, contestacaoResponse, totaisResponse, setoresResponse, subnucleosResponse] = await Promise.all([
         relatorioService.buscarEscala(filtros),
         relatorioService.buscarContestacao(filtros),
         relatorioService.buscarTotais(filtros),
+        relatorioService.buscarSetores(filtros),
+        relatorioService.buscarSubnucleos(filtros),
       ]);
 
       setResultados(escalaResponse.content || []);
@@ -258,26 +538,66 @@ const Relatorio = () => {
       setPage(newPage);
       setContestacoes(contestacaoResponse || []);
       setTotais(totaisResponse || { totalAudiencias: 0, totalPautas: 0 });
+      setSetores(setoresResponse || []);
+      setSubnucleos(subnucleosResponse || []);
     } catch (error) {
       console.error('Erro ao buscar relatório:', error);
       setResultados([]);
       setTotalElements(0);
       setContestacoes([]);
       setTotais({ totalAudiencias: 0, totalPautas: 0 });
+      setSetores([]);
+      setSubnucleos([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Função para buscar apenas os dados da tabela (paginação)
+  const [tabelaLoading, setTabelaLoading] = useState(false);
+  
+  const handleBuscarTabela = async (newPage, newRowsPerPage = rowsPerPage) => {
+    if (!formData.dataInicio || !formData.dataFim) {
+      return;
+    }
+
+    setTabelaLoading(true);
+    try {
+      const filtros = {
+        page: newPage,
+        size: newRowsPerPage,
+        dataInicio: formData.dataInicio,
+        dataFim: formData.dataFim,
+        userId: formData.usuario?.id || null,
+        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
+        tipoContestacao: formData.tipoContestacao || null,
+        subnucleo: formData.subnucleo || null,
+        classeJudicial: formData.classeJudicial || null,
+        view: formData.viewRelatorio || 'ESCALA',
+      };
+
+      const escalaResponse = await relatorioService.buscarEscala(filtros);
+
+      setResultados(escalaResponse.content || []);
+      setTotalElements(escalaResponse.totalElements || 0);
+      setPage(newPage);
+    } catch (error) {
+      console.error('Erro ao buscar tabela:', error);
+    } finally {
+      setTabelaLoading(false);
+    }
+  };
+
   const handleChangePage = (event, newPage) => {
-    handleBuscar(newPage);
+    handleBuscarTabela(newPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
     setPage(0);
     if (buscaRealizada) {
-      handleBuscar(0);
+      handleBuscarTabela(0, newRowsPerPage);
     }
   };
 
@@ -290,6 +610,7 @@ const Relatorio = () => {
       tipoContestacao: '',
       subnucleo: '',
       classeJudicial: '',
+      viewRelatorio: 'ESCALA',
     });
     setResultados([]);
     setTotalElements(0);
@@ -297,6 +618,8 @@ const Relatorio = () => {
     setBuscaRealizada(false);
     setContestacoes([]);
     setTotais({ totalAudiencias: 0, totalPautas: 0 });
+    setSetores([]);
+    setSubnucleos([]);
   };
 
   return (
@@ -306,9 +629,9 @@ const Relatorio = () => {
         {/* ==================== CAMADA 1: FILTROS ==================== */}
         <ReportCard title="Filtros">
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Linha 1: Inputs */}
+            {/* Linha 1: Data Início, Data Fim, Tipo Relatório, Usuário */}
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   label="Data Início *"
                   type="date"
@@ -319,7 +642,7 @@ const Relatorio = () => {
                 />
               </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   label="Data Fim *"
                   type="date"
@@ -330,7 +653,23 @@ const Relatorio = () => {
                 />
               </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
+                <TextField
+                  select
+                  label="Tipo Relatório"
+                  fullWidth
+                  value={formData.viewRelatorio}
+                  onChange={(e) => setFormData({ ...formData, viewRelatorio: e.target.value })}
+                >
+                  {VIEW_RELATORIO_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <Autocomplete
                   options={usuarioOptions}
                   getOptionLabel={(option) => option.nome || ''}
@@ -357,8 +696,11 @@ const Relatorio = () => {
                   )}
                 />
               </Box>
+            </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+            {/* Linha 2: Órgão Julgador, Tipo Contestação, Subnúcleo, Classe Judicial */}
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <Autocomplete
                   options={orgaoJulgadorOptions}
                   getOptionLabel={(option) => option.nome || ''}
@@ -386,7 +728,7 @@ const Relatorio = () => {
                 />
               </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   select
                   label="Tipo Contestação"
@@ -403,7 +745,7 @@ const Relatorio = () => {
                 </TextField>
               </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   select
                   label="Subnúcleo"
@@ -420,7 +762,7 @@ const Relatorio = () => {
                 </TextField>
               </Box>
 
-              <Box sx={{ flex: '1 1 calc(14.28% - 16px)', minWidth: 150 }}>
+              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   select
                   label="Classe Judicial"
@@ -438,7 +780,7 @@ const Relatorio = () => {
               </Box>
             </Box>
 
-            {/* Linha 2: Botões */}
+            {/* Linha 3: Botões */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
                 variant="contained"
@@ -506,10 +848,60 @@ const Relatorio = () => {
           </Box>
         )}
 
+        {/* ==================== CAMADA 2.5: GRÁFICOS DE PIZZA (SETORES E SUBNÚCLEOS) ==================== */}
+        {buscaRealizada && !loading && (
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            {/* Gráfico de Pizza - Setores */}
+            <Box sx={{ flex: 1, minWidth: 350 }}>
+              <ReportCard title="Distribuição por Setor">
+                {setores.length > 0 ? (
+                  <SetoresChart setores={setores} />
+                ) : (
+                  <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
+                    Nenhum setor encontrado
+                  </Typography>
+                )}
+              </ReportCard>
+            </Box>
+
+            {/* Gráfico de Pizza - Subnúcleos */}
+            <Box sx={{ flex: 1, minWidth: 350 }}>
+              <ReportCard title="Distribuição por Subnúcleo">
+                {subnucleos.length > 0 ? (
+                  <SubnucleosChart subnucleos={subnucleos} />
+                ) : (
+                  <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
+                    Nenhum subnúcleo encontrado
+                  </Typography>
+                )}
+              </ReportCard>
+            </Box>
+          </Box>
+        )}
+
         {/* ==================== CAMADA 3: TABELA DE AUDIÊNCIAS ==================== */}
         {buscaRealizada && !loading && (
           <ReportCard title="Audiências">
-            <Box sx={{ overflowX: 'auto', width: '100%' }}>
+            <Box sx={{ overflowX: 'auto', width: '100%', position: 'relative' }}>
+              {/* Overlay de loading para paginação */}
+              {tabelaLoading && (
+                <Box 
+                  sx={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    right: 0, 
+                    bottom: 0, 
+                    bgcolor: 'rgba(255, 255, 255, 0.7)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    zIndex: 1,
+                  }}
+                >
+                  <CircularProgress size={40} />
+                </Box>
+              )}
               <Table aria-label="tabela de relatório">
                 <TableHead>
                   <TableRow>

@@ -120,6 +120,21 @@ export const CLASSE_JUDICIAL_OPTIONS = [
 ];
 
 /**
+ * Enum ViewRelatorio - Tipo de visão do relatório
+ * ESCALA: Filtra apenas audiências que possuem escala associada
+ * AUDIENCIA: Considera todas as audiências, independente de terem escala
+ */
+export const VIEW_RELATORIO = {
+  ESCALA: 'ESCALA',
+  AUDIENCIA: 'AUDIENCIA',
+};
+
+export const VIEW_RELATORIO_OPTIONS = [
+  { value: 'ESCALA', label: 'Escala' },
+  { value: 'AUDIENCIA', label: 'Audiência' },
+];
+
+/**
  * Função para obter a cor e descrição de uma resposta
  * Aceita tanto enum value quanto descrição do backend
  * @param {string} resposta - Valor do enum ou descrição (ex: 'COMPARECER' ou 'Comparecer')

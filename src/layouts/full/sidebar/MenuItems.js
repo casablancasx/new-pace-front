@@ -135,7 +135,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: 'Audiências',
+    title: 'Consulta de Audiencias',
     icon: IconGavel,
     href: '/audiencias',
     roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],

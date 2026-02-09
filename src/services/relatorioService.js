@@ -3,8 +3,10 @@ import api from './api';
 const relatorioService = {
   /**
    * Monta os parâmetros comuns para os relatórios
+   * @param {Object} filtros - Filtros da busca
+   * @param {boolean} includeView - Se deve incluir o parâmetro view (default: false)
    */
-  _montarParametros(filtros) {
+  _montarParametros(filtros, includeView = false) {
     const params = new URLSearchParams();
     
     params.append('dataInicio', filtros.dataInicio);
@@ -28,6 +30,11 @@ const relatorioService = {
     
     if (filtros.classeJudicial) {
       params.append('classeJudicial', filtros.classeJudicial);
+    }
+
+    // Adiciona o parâmetro view apenas para endpoints que suportam
+    if (includeView && filtros.view) {
+      params.append('view', filtros.view);
     }
     
     return params;
@@ -60,7 +67,7 @@ const relatorioService = {
    * @returns {Promise<Array>} Lista de ContestacaoRelatorioDTO
    */
   async buscarContestacao(filtros) {
-    const params = this._montarParametros(filtros);
+    const params = this._montarParametros(filtros, true);
     return api.get(`/relatorio/contestacao?${params.toString()}`);
   },
 
@@ -70,8 +77,28 @@ const relatorioService = {
    * @returns {Promise<Object>} TotaisRelatorioDTO
    */
   async buscarTotais(filtros) {
-    const params = this._montarParametros(filtros);
+    const params = this._montarParametros(filtros, true);
     return api.get(`/relatorio/totais?${params.toString()}`);
+  },
+
+  /**
+   * Busca relatório de setores
+   * @param {Object} filtros - Filtros da busca
+   * @returns {Promise<Array>} Lista de SetorRelatorioDTO
+   */
+  async buscarSetores(filtros) {
+    const params = this._montarParametros(filtros, true);
+    return api.get(`/relatorio/setores?${params.toString()}`);
+  },
+
+  /**
+   * Busca relatório de subnúcleos
+   * @param {Object} filtros - Filtros da busca
+   * @returns {Promise<Array>} Lista de SubnucleoRelatorioDTO
+   */
+  async buscarSubnucleos(filtros) {
+    const params = this._montarParametros(filtros, true);
+    return api.get(`/relatorio/subnucleos?${params.toString()}`);
   },
 };
 

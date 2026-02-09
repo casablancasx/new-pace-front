@@ -131,17 +131,17 @@ const Audiencias = () => {
   const ALL_COLUMNS = [
     { id: 'id', label: 'ID' },
     { id: 'horario', label: 'Horario' },
+    { id: 'data', label: 'Data' },
     { id: 'processo', label: 'Processo' },
     { id: 'parte', label: 'Parte' },
     { id: 'assunto', label: 'Assunto' },
-    { id: 'orgao', label: 'Orgao Julgador' },
-    { id: 'dataPauta', label: 'Data Pauta' },
+    { id: 'advogados', label: 'Advogados' },
     { id: 'tipoContestacao', label: 'Tipo Contest.' },
     { id: 'analise', label: 'Analise' },
+    { id: 'subnucleo', label: 'Subnúcleo' },
+    { id: 'classeJudicial', label: 'Classe Judicial' },
     { id: 'pautista', label: 'Pautista' },
     { id: 'avaliador', label: 'Avaliador' },
-    { id: 'statusTarefa', label: 'Status Tarefa' },
-    { id: 'prioritaria', label: 'Prioritária' },
     { id: 'observacao', label: 'Observação' },
   ];
 
@@ -249,9 +249,10 @@ const Audiencias = () => {
         orderBy,
         sort
       );
-      setAudiencias(response.content || []);
-      // totalElements está dentro de response.page na estrutura da API
-      setTotalElements(response.page?.totalElements || response.totalElements || 0);
+      const content = response?.content || response?.items || response?.data?.content || response?.data?.items || [];
+      const total = response?.page?.totalElements ?? response?.totalElements ?? response?.total ?? response?.data?.totalElements ?? response?.data?.total ?? 0;
+      setAudiencias(content);
+      setTotalElements(total);
     } catch (err) {
       console.error('Erro ao buscar audiencias:', err);
       setAudiencias([]);
@@ -295,8 +296,14 @@ const Audiencias = () => {
     setPage(0);
   };
 
+  const handleRowClick = (audiencia) => {
+    if (audiencia?.processoUrl) {
+      window.open(audiencia.processoUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <PageContainer title="Audiencias" description="Listagem de Audiencias">
+    <PageContainer title="Consulta de Audiencias" description="Consulta de Audiencias">
       {/* Secao de Filtros */}
       <Box sx={{ mb: 3 }}>
         <DashboardCard title="Filtros">
@@ -379,7 +386,7 @@ const Audiencias = () => {
       
 
       {/* Tabela de Audiencias */}
-      <DashboardCard title="Audiencias">
+      <DashboardCard title="Consulta de Audiencias">
         <Box sx={{ overflowX: 'auto', width: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Tooltip title="Colunas">
@@ -434,6 +441,19 @@ const Audiencias = () => {
                         </Typography>
                       </TableCell>
                     )}
+                    {visibleColumns.data && (
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'data'}
+                          direction={orderBy === 'data' ? sort.toLowerCase() : 'desc'}
+                          onClick={() => handleSort('data')}
+                        >
+                          <Typography variant="subtitle2" fontWeight={600}>
+                            Data
+                          </Typography>
+                        </TableSortLabel>
+                      </TableCell>
+                    )}
                     {visibleColumns.processo && (
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
@@ -455,24 +475,11 @@ const Audiencias = () => {
                         </Typography>
                       </TableCell>
                     )}
-                    {visibleColumns.orgao && (
+                    {visibleColumns.advogados && (
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
-                          Orgao Julgador
+                          Advogados
                         </Typography>
-                      </TableCell>
-                    )}
-                    {visibleColumns.dataPauta && (
-                      <TableCell>
-                        <TableSortLabel
-                          active={orderBy === 'data'}
-                          direction={orderBy === 'data' ? sort.toLowerCase() : 'desc'}
-                          onClick={() => handleSort('data')}
-                        >
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            Data Pauta
-                          </Typography>
-                        </TableSortLabel>
                       </TableCell>
                     )}
                     {visibleColumns.tipoContestacao && (
@@ -489,6 +496,20 @@ const Audiencias = () => {
                         </Typography>
                       </TableCell>
                     )}
+                    {visibleColumns.subnucleo && (
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Subnúcleo
+                        </Typography>
+                      </TableCell>
+                    )}
+                    {visibleColumns.classeJudicial && (
+                      <TableCell>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Classe Judicial
+                        </Typography>
+                      </TableCell>
+                    )}
                     {visibleColumns.pautista && (
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
@@ -500,20 +521,6 @@ const Audiencias = () => {
                       <TableCell>
                         <Typography variant="subtitle2" fontWeight={600}>
                           Avaliador
-                        </Typography>
-                      </TableCell>
-                    )}
-                    {visibleColumns.statusTarefa && (
-                      <TableCell>
-                        <Typography variant="subtitle2" fontWeight={600}>
-                          Status Tarefa
-                        </Typography>
-                      </TableCell>
-                    )}
-                    {visibleColumns.prioritaria && (
-                      <TableCell>
-                        <Typography variant="subtitle2" fontWeight={600}>
-                          Prioritária
                         </Typography>
                       </TableCell>
                     )}
@@ -532,108 +539,55 @@ const Audiencias = () => {
                       <StyledTableRow 
                         key={audiencia.audienciaId} 
                         isNovaAudiencia={audiencia.novaAudiencia}
+                        onClick={() => handleRowClick(audiencia)}
                       >
                         {visibleColumns.id && (
                           <TableCell>
-                            <Typography sx={{ fontSize: '14px', fontWeight: '500' }}>
+                            <Typography sx={{ fontSize: '14px', fontWeight: '600' }}>
                               {audiencia.audienciaId}
                             </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.horario && (
                           <TableCell>
-                            <Typography sx={{ fontSize: '14px', fontWeight: '500' }}>
+                            <Typography sx={{ fontSize: '14px', fontWeight: '600' }}>
                               {audiencia.horario || '-'}
+                            </Typography>
+                          </TableCell>
+                        )}
+                        {visibleColumns.data && (
+                          <TableCell>
+                            <Typography variant="subtitle2" fontWeight={500}>
+                              {formatDate(audiencia.data)}
                             </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.processo && (
                           <TableCell>
-                            <Tooltip title={audiencia.numeroProcesso || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 150, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.numeroProcesso || '-'}
-                              </Typography>
-                            </Tooltip>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.numeroProcesso || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.parte && (
                           <TableCell>
-                            <Tooltip title={audiencia.nomeParte || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 150, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.nomeParte || '-'}
-                              </Typography>
-                            </Tooltip>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.nomeParte || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.assunto && (
                           <TableCell>
-                            <Tooltip title={audiencia.assunto?.nome || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 150, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.assunto?.nome || '-'}
-                              </Typography>
-                            </Tooltip>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.assunto || '-'}
+                            </Typography>
                           </TableCell>
                         )}
-                        {visibleColumns.orgao && (
+                        {visibleColumns.advogados && (
                           <TableCell>
-                            <Box>
-                              <Tooltip title={audiencia.pauta?.orgaoJulgador?.nome || ''}>
-                                <Typography 
-                                  variant="subtitle2" 
-                                  fontWeight={500}
-                                  sx={{ 
-                                    maxWidth: 150, 
-                                    overflow: 'hidden', 
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {audiencia.pauta?.orgaoJulgador?.nome || '-'}
-                                </Typography>
-                              </Tooltip>
-                              <Typography variant="caption" color="textSecondary">
-                                {audiencia.pauta?.orgaoJulgador?.uf?.sigla || ''}
-                                {audiencia.pauta?.sala?.nome ? ` - ${audiencia.pauta?.sala?.nome}` : ''}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                        )}
-                        {visibleColumns.dataPauta && (
-                          <TableCell>
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight={500}>
-                                {formatDate(audiencia.pauta?.data)}
-                              </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                {audiencia.pauta?.turno || ''}
-                              </Typography>
-                            </Box>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.advogados?.length > 0 ? audiencia.advogados.join(', ') : '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.tipoContestacao && (
@@ -650,93 +604,43 @@ const Audiencias = () => {
                             <Chip
                               size="small"
                               color={getRespostaAnaliseColor(audiencia.analiseAvaliador)}
-                              label={getRespostaAnaliseDescricao(audiencia.analiseAvaliador)}
+                              label={audiencia.analiseAvaliador || 'Pendente'}
                             />
+                          </TableCell>
+                        )}
+                        {visibleColumns.subnucleo && (
+                          <TableCell>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.subnucleo || '-'}
+                            </Typography>
+                          </TableCell>
+                        )}
+                        {visibleColumns.classeJudicial && (
+                          <TableCell>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.classeJudicial || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.pautista && (
                           <TableCell>
-                            <Tooltip title={audiencia.pautista?.email || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 120, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.pautista?.nome || '-'}
-                              </Typography>
-                            </Tooltip>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.pautista || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.avaliador && (
                           <TableCell>
-                            <Tooltip title={audiencia.avaliador?.email || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 120, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.avaliador?.nome || '-'}
-                              </Typography>
-                            </Tooltip>
-                          </TableCell>
-                        )}
-                        {visibleColumns.statusTarefa && (
-                          <TableCell>
-                            <Stack spacing={0.5}>
-                              <Tooltip title="Status Tarefa Pautista">
-                                <Chip
-                                  size="small"
-                                  color={getStatusTarefaColor(audiencia.statusCadastroTarefaPautista)}
-                                  label={`P: ${formatStatusTarefa(audiencia.statusCadastroTarefaPautista)}`}
-                                  sx={{ fontSize: '0.7rem' }}
-                                />
-                              </Tooltip>
-                              <Tooltip title="Status Tarefa Avaliador">
-                                <Chip
-                                  size="small"
-                                  color={getStatusTarefaColor(audiencia.statusCadastroTarefaAvaliador)}
-                                  label={`A: ${formatStatusTarefa(audiencia.statusCadastroTarefaAvaliador)}`}
-                                  sx={{ fontSize: '0.7rem' }}
-                                />
-                              </Tooltip>
-                            </Stack>
-                          </TableCell>
-                        )}
-                        {visibleColumns.prioritaria && (
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              color={audiencia.prioritaria ? 'error' : 'default'}
-                              label={audiencia.prioritaria ? 'Sim' : 'Não'}
-                            />
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.avaliador || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                         {visibleColumns.observacao && (
                           <TableCell>
-                            <Tooltip title={audiencia.observacao || ''}>
-                              <Typography 
-                                color="textSecondary" 
-                                variant="subtitle2" 
-                                fontWeight={400}
-                                sx={{ 
-                                  maxWidth: 200, 
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis',
-                                }}
-                              >
-                                {audiencia.observacao || '-'}
-                              </Typography>
-                            </Tooltip>
+                            <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                              {audiencia.observacao || '-'}
+                            </Typography>
                           </TableCell>
                         )}
                       </StyledTableRow>
