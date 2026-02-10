@@ -240,14 +240,14 @@ const UploadPlanilha = () => {
   };
 
   return (
-    <PageContainer title="Upload Planilha" description="Faça upload de planilhas Excel">
+    <PageContainer title="Upload de Audiências" description="Faça upload do seu arquivo de audiências">
       {/* Área de Upload */}
-      <DashboardCard title="Upload de Planilha">
+      <DashboardCard title="Upload de Audiências">
         <Box>
           <HiddenInput
             type="file"
             id="file-upload"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx,.xls,.pdf"
             onChange={handleInputChange}
             disabled={uploading}
           />
@@ -267,7 +267,7 @@ const UploadPlanilha = () => {
               </IconWrapper>
 
               <Typography variant="h6" gutterBottom>
-                {isDragActive ? 'Solte o arquivo aqui' : 'Arraste e solte sua planilha aqui'}
+                {isDragActive ? 'Solte o arquivo aqui' : 'Arraste e solte seu arquivo aqui'}
               </Typography>
 
               <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
@@ -275,7 +275,7 @@ const UploadPlanilha = () => {
               </Typography>
 
               <Typography variant="caption" color="textSecondary">
-                Formatos aceitos: .xlsx, .xls, .csv
+                Formatos aceitos: .xlsx, .xls, .pdf
               </Typography>
             </DropZone>
           </label>

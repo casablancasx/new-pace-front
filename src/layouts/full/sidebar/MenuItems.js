@@ -81,7 +81,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: 'Upload Planilha',
+    title: 'Upload de Audiências',
     icon: IconFileUpload,
     href: '/upload-planilha',
     roles: ['ADMIN'],

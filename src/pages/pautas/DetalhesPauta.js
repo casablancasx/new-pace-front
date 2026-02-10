@@ -29,7 +29,7 @@ import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import pautaService from '../../services/pautaService';
 import audienciaService from '../../services/audienciaService';
-import { RESPOSTA_ANALISE_OPTIONS, SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
+import { RESPOSTA_ANALISE_OPTIONS, SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, getRespostaAnaliseColor, getRespostaAnaliseDescricao, getRespostaAnaliseInfo, normalizarTipoContestacao } from '../../constants/respostaAnaliseAvaliador';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -111,9 +111,13 @@ const DetalhesPauta = () => {
   // Handlers do popup
   const handleRowClick = (audiencia) => {
     setSelectedAudiencia(audiencia);
-    setRespostaAnalise(audiencia.analiseAvaliador || '');
+    // Normalizar analiseAvaliador: API retorna descrição (ex: "Não Escalada"), select usa enum (ex: "NAO_ESCALADA")
+    const analiseInfo = getRespostaAnaliseInfo(audiencia.analiseAvaliador);
+    const analiseValue = analiseInfo?.value || '';
+    // Não preencher se for ANALISE_PENDENTE (o avaliador precisa escolher)
+    setRespostaAnalise(analiseValue === 'ANALISE_PENDENTE' ? '' : analiseValue);
     setSubnucleo(audiencia.subnucleo || '');
-    setTipoContestacao(audiencia.tipoContestacao || '');
+    setTipoContestacao(normalizarTipoContestacao(audiencia.tipoContestacao));
     setClasseJudicial(audiencia.classeJudicial || '');
     setObservacao(audiencia.observacao || '');
     setOpenDialog(true);
@@ -544,21 +548,47 @@ const DetalhesPauta = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
-          <Link
-            href={selectedAudiencia?.linkTarefaSapiens || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 0.5,
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' }
-            }}
-          >
-            <IconSearch size={18} />
-            Consultar tarefa no Sapiens
-          </Link>
+          {selectedAudiencia?.tarefaUrl ? (
+            <Link
+              href={selectedAudiencia.tarefaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 0.5,
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              <IconSearch size={18} />
+              Consultar tarefa no Sapiens
+            </Link>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="caption" color="textSecondary">
+                Você não possui tarefa no Sapiens para este processo.
+              </Typography>
+              {selectedAudiencia?.processoUrl && (
+                <Link
+                  href={selectedAudiencia.processoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5,
+                    textDecoration: 'none',
+                    fontSize: '0.85rem',
+                    '&:hover': { textDecoration: 'underline' }
+                  }}
+                >
+                  <IconSearch size={16} />
+                  Consultar processo
+                </Link>
+              )}
+            </Box>
+          )}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               onClick={handleCloseDialog}

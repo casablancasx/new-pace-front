@@ -109,7 +109,24 @@ export const TIPO_CONTESTACAO_OPTIONS = [
   { value: 'TIPO3', label: 'TIPO 3' },
   { value: 'TIPO4', label: 'TIPO 4' },
   { value: 'TIPO5', label: 'TIPO 5' },
+  { value: 'SEM_CONTESTACAO', label: 'SEM CONTESTAÇÃO' },
+  { value: 'SEM_TIPO', label: 'SEM TIPO' },
+  { value: 'ERRO_SAPIENS', label: 'ERRO SAPIENS' },
 ];
+
+/**
+ * Normaliza tipoContestacao: converte descrição ("TIPO 3") para enum value ("TIPO3")
+ */
+const TIPO_CONTESTACAO_DESC_TO_VALUE = {};
+TIPO_CONTESTACAO_OPTIONS.forEach((opt) => {
+  TIPO_CONTESTACAO_DESC_TO_VALUE[opt.label] = opt.value;
+  TIPO_CONTESTACAO_DESC_TO_VALUE[opt.value] = opt.value;
+});
+
+export const normalizarTipoContestacao = (tipo) => {
+  if (!tipo) return '';
+  return TIPO_CONTESTACAO_DESC_TO_VALUE[tipo] || tipo;
+};
 
 /**
  * Opções de Classe Judicial
