@@ -27,14 +27,14 @@ const ExSlider = lazy(() => import("../pages/form-elements/ExSlider"));
 const ExSwitch = lazy(() => import("../pages/form-elements/ExSwitch"));
 const FormLayouts = lazy(() => import("../pages/form-layouts/FormLayouts"));
 const UploadPlanilha = lazy(() => import("../pages/upload-planilha/UploadPlanilha"));
-const EscalarPautista = lazy(() => import("../pages/escala/EscalarPautista"));
-const EscalarAvaliador = lazy(() => import("../pages/escala/EscalarAvaliador"));
+const EscalaForm = lazy(() => import("../pages/escala/EscalaForm"));
 const Pautas = lazy(() => import("../pages/pautas/Pautas"));
 const DetalhesPauta = lazy(() => import("../pages/pautas/DetalhesPauta"));
 const Audiencias = lazy(() => import("../pages/audiencias/Audiencias"));
 const AdvogadosPrioritarios = lazy(() => import("../pages/audiencias/AdvogadosPrioritarios"));
 const Avaliadores = lazy(() => import("../pages/equipe/Avaliadores"));
 const Pautistas = lazy(() => import("../pages/equipe/Pautistas"));
+const Apoio = lazy(() => import("../pages/equipe/Apoio"));
 const ControleUsuarios = lazy(() => import("../pages/usuarios/ControleUsuarios"));
 const Relatorio = lazy(() => import("../pages/relatorio/Relatorio"));
 
@@ -48,27 +48,27 @@ const Router = [
       { 
         path: '/upload-planilha', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><UploadPlanilha /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><UploadPlanilha /></ProtectedRoute> 
       },
       { 
         path: '/equipe/avaliadores', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><Avaliadores /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><Avaliadores /></ProtectedRoute> 
       },
       { 
         path: '/equipe/pautistas', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><Pautistas /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><Pautistas /></ProtectedRoute> 
       },
       { 
-        path: '/escala/pautista', 
+        path: '/equipe/apoio', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><EscalarPautista /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><Apoio /></ProtectedRoute> 
       },
       { 
-        path: '/escala/avaliador', 
+        path: '/escala', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><EscalarAvaliador /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><EscalaForm /></ProtectedRoute> 
       },
       { path: '/pautas', exact: true, element: <Pautas /> },
       { path: '/pautas/:id', exact: true, element: <DetalhesPauta /> },
@@ -77,7 +77,7 @@ const Router = [
       { 
         path: '/relatorio', 
         exact: true, 
-        element: <ProtectedRoute allowedRoles={['ADMIN']}><Relatorio /></ProtectedRoute> 
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><Relatorio /></ProtectedRoute> 
       },
       { 
         path: '/usuarios', 

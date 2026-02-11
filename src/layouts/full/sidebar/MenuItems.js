@@ -77,32 +77,38 @@ const Menuitems = [
     title: 'Dashboard',
     icon: IconLayoutDashboard,
     href: '/dashboard',
-    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN','APOIO'],
   },
   {
     id: uniqueId(),
     title: 'Upload de Audiências',
     icon: IconFileUpload,
     href: '/upload-planilha',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'APOIO'],
   },
   {
     id: uniqueId(),
     title: 'Equipe',
     icon: IconUsers,
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'APOIO'],
     children: [
       {
         id: uniqueId(),
         title: 'Avaliadores',
         href: '/equipe/avaliadores',
-        roles: ['ADMIN'],
+        roles: ['ADMIN','APOIO'],
       },
       {
         id: uniqueId(),
         title: 'Pautistas',
         href: '/equipe/pautistas',
-        roles: ['ADMIN'],
+        roles: ['ADMIN','APOIO'],
+      },
+      {
+        id: uniqueId(),
+        title: 'Apoio',
+        href: '/equipe/apoio',
+        roles: ['ADMIN', 'APOIO'],
       },
     ],
   },
@@ -110,35 +116,22 @@ const Menuitems = [
     id: uniqueId(),
     title: 'Escala',
     icon: IconCalendarEvent,
-    roles: ['ADMIN'],
-    children: [
-       {
-        id: uniqueId(),
-        title: 'Escalar Avaliador',
-        href: '/escala/avaliador',
-        roles: ['ADMIN'],
-      },
-      {
-        id: uniqueId(),
-        title: 'Escalar Pautista',
-        href: '/escala/pautista',
-        roles: ['ADMIN'],
-      }
-    ],
+    href: '/escala',
+    roles: ['ADMIN', 'APOIO'],
   },
   {
     id: uniqueId(),
     title: 'Pautas',
     icon: IconClipboardList,
     href: '/pautas',
-    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN','APOIO'],
   },
   {
     id: uniqueId(),
     title: 'Consulta de Audiencias',
     icon: IconGavel,
     href: '/audiencias',
-    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN'],
+    roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN','APOIO'],
   }
   ,
   {
@@ -153,7 +146,7 @@ const Menuitems = [
     title: 'Relatório',
     icon: IconChartHistogram,
     href: '/relatorio',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'APOIO'],
     chip: 'Novo',
   },
   {

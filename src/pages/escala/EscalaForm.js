@@ -13,6 +13,7 @@ import {
   Switch,
   FormControlLabel,
   Tooltip,
+  MenuItem,
 } from '@mui/material';
 import { IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react';
 import { IconPlayerPlay } from '@tabler/icons-react';
@@ -21,7 +22,7 @@ import DashboardCard from '../../components/shared/DashboardCard';
 import sapiensService from '../../services/sapiensService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import avaliadorService from '../../services/avaliadorService';
-import pautistaService from '../../services/pautistaService';
+import apoioService from '../../services/apoioService';
 import escalaService from '../../services/escalaService';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -65,13 +66,22 @@ const tipoContestacaoOptions = [
   { label: 'SEM CONTESTAÇÃO', value: 'SEM_CONTESTACAO' },
 ];
 
-const EscalaForm = ({ tipo = 'pautista' }) => {
+const subnucleoOptions = [
+  { label: 'ESEAS', value: 'ESEAS' },
+  { label: 'EBI', value: 'EBI' },
+  { label: 'ERU', value: 'ERU' },
+];
+
+const tipoEscalaOptions = [
+  { label: 'Avaliador', value: 'AVALIADOR' },
+  { label: 'Apoio', value: 'APOIO' },
+];
+
+const EscalaForm = () => {
   const { user } = useContext(AuthContext);
-  const isPautista = tipo === 'pautista';
-  const title = isPautista ? 'Escalar Pautista' : 'Escalar Avaliador';
-  const pessoaLabel = isPautista ? 'Pautistas' : 'Avaliadores';
 
   const [formData, setFormData] = useState({
+    tipoEscala: '',
     especieTarefa: null,
     unidade: null,
     setorOrigem: null,
@@ -80,6 +90,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     unidadesFederativas: [],
     orgaoJulgadores: [],
     tipoContestacao: [],
+    subnucleos: [],
     pessoas: [],
     distribuicaoAutomaticaSetores: true,
     unidadeDestino: null,
@@ -116,15 +127,10 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const [orgaoJulgadorSearchTerm, setOrgaoJulgadorSearchTerm] = useState('');
   const [orgaoJulgadorLoading, setOrgaoJulgadorLoading] = useState(false);
 
-  // Estados para busca de avaliadores
-  const [avaliadorOptions, setAvaliadorOptions] = useState([]);
-  const [avaliadorSearchTerm, setAvaliadorSearchTerm] = useState('');
-  const [avaliadorLoading, setAvaliadorLoading] = useState(false);
-
-  // Estados para busca de pautistas
-  const [pautistaOptions, setPautistaOptions] = useState([]);
-  const [pautistaSearchTerm, setPautistaSearchTerm] = useState('');
-  const [pautistaLoading, setPautistaLoading] = useState(false);
+  // Estados para busca de usuários (avaliadores ou apoio)
+  const [usuarioOptions, setUsuarioOptions] = useState([]);
+  const [usuarioSearchTerm, setUsuarioSearchTerm] = useState('');
+  const [usuarioLoading, setUsuarioLoading] = useState(false);
 
   // Buscar espécies de tarefa com debounce
   useEffect(() => {
@@ -295,9 +301,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
       setOrgaoJulgadorLoading(true);
       try {
-        // Extrair as siglas das UFs selecionadas
         const ufs = formData.unidadesFederativas.map(uf => uf.value);
-        // Busca com o termo digitado ou string vazia para trazer todos
         const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '', ufs);
         setOrgaoJulgadorOptions(results);
       } catch (err) {
@@ -318,86 +322,68 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
     setOrgaoJulgadorSearchTerm('');
   }, [formData.unidadesFederativas.length]);
 
-  // Buscar avaliadores (carrega na montagem e filtra conforme digita)
+  // Buscar usuários conforme tipoEscala selecionado
   useEffect(() => {
     const buscar = async () => {
-      if (isPautista) return; // Só busca se for tela de avaliador
-      
-      setAvaliadorLoading(true);
+      if (!formData.tipoEscala) return;
+
+      setUsuarioLoading(true);
       try {
-        const results = await avaliadorService.buscar(avaliadorSearchTerm);
-        setAvaliadorOptions(results);
+        let results;
+        if (formData.tipoEscala === 'AVALIADOR') {
+          results = await avaliadorService.buscar(usuarioSearchTerm);
+        } else {
+          results = await apoioService.buscarEquipeParaEscala(usuarioSearchTerm);
+        }
+        setUsuarioOptions(results);
       } catch (err) {
-        console.error('Erro ao buscar avaliadores:', err);
-        setAvaliadorOptions([]);
+        console.error('Erro ao buscar usuários:', err);
+        setUsuarioOptions([]);
       } finally {
-        setAvaliadorLoading(false);
+        setUsuarioLoading(false);
       }
     };
 
     const timeoutId = setTimeout(buscar, 300);
     return () => clearTimeout(timeoutId);
-  }, [avaliadorSearchTerm, isPautista]);
+  }, [usuarioSearchTerm, formData.tipoEscala]);
 
-  // Carregar avaliadores na montagem do componente (se for tela de avaliador)
+  // Carregar usuários na montagem quando tipoEscala mudar
   useEffect(() => {
-    if (!isPautista) {
-      const carregarAvaliadores = async () => {
-        setAvaliadorLoading(true);
-        try {
-          const results = await avaliadorService.buscar('');
-          setAvaliadorOptions(results);
-        } catch (err) {
-          console.error('Erro ao carregar avaliadores:', err);
-        } finally {
-          setAvaliadorLoading(false);
-        }
-      };
-      carregarAvaliadores();
+    if (!formData.tipoEscala) {
+      setUsuarioOptions([]);
+      return;
     }
-  }, [isPautista]);
 
-  // Buscar pautistas (carrega na montagem e filtra conforme digita)
-  useEffect(() => {
-    const buscar = async () => {
-      if (!isPautista) return; // Só busca se for tela de pautista
-      
-      setPautistaLoading(true);
+    const carregar = async () => {
+      setUsuarioLoading(true);
       try {
-        const results = await pautistaService.buscar(pautistaSearchTerm);
-        setPautistaOptions(results);
+        let results;
+        if (formData.tipoEscala === 'AVALIADOR') {
+          results = await avaliadorService.buscar('');
+        } else {
+          results = await apoioService.buscarEquipeParaEscala('');
+        }
+        setUsuarioOptions(results);
       } catch (err) {
-        console.error('Erro ao buscar pautistas:', err);
-        setPautistaOptions([]);
+        console.error('Erro ao carregar usuários:', err);
       } finally {
-        setPautistaLoading(false);
+        setUsuarioLoading(false);
       }
     };
+    carregar();
+  }, [formData.tipoEscala]);
 
-    const timeoutId = setTimeout(buscar, 300);
-    return () => clearTimeout(timeoutId);
-  }, [pautistaSearchTerm, isPautista]);
-
-  // Carregar pautistas na montagem do componente (se for tela de pautista)
+  // Limpar pessoas selecionadas quando tipoEscala mudar
   useEffect(() => {
-    if (isPautista) {
-      const carregarPautistas = async () => {
-        setPautistaLoading(true);
-        try {
-          const results = await pautistaService.buscar('');
-          setPautistaOptions(results);
-        } catch (err) {
-          console.error('Erro ao carregar pautistas:', err);
-        } finally {
-          setPautistaLoading(false);
-        }
-      };
-      carregarPautistas();
-    }
-  }, [isPautista]);
+    setFormData(prev => ({ ...prev, pessoas: [] }));
+    setUsuarioSearchTerm('');
+    setUsuarioOptions([]);
+  }, [formData.tipoEscala]);
 
   // Estados para feedback do submit
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [dialog, setDialog] = useState({ 
     open: false, 
     loading: false, 
@@ -412,49 +398,41 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validações básicas
-    if (!formData.especieTarefa) {
-      setDialog({ open: true, loading: false, message: 'Selecione uma Espécie Tarefa', success: false });
-      return;
+    const errors = {};
+    if (!formData.especieTarefa) errors.especieTarefa = 'Campo obrigatório';
+    if (!formData.unidade) errors.unidade = 'Campo obrigatório';
+    if (!formData.setorOrigem) errors.setorOrigem = 'Campo obrigatório';
+    if (!formData.dataInicio) errors.dataInicio = 'Campo obrigatório';
+    if (!formData.dataFim) errors.dataFim = 'Campo obrigatório';
+    if (!formData.subnucleos || formData.subnucleos.length === 0) errors.subnucleos = 'Selecione pelo menos um subnúcleo';
+    if (!formData.tipoEscala) errors.tipoEscala = 'Campo obrigatório';
+    if (!formData.distribuicaoAutomaticaSetores) {
+      if (!formData.unidadeDestino) errors.unidadeDestino = 'Campo obrigatório';
+      if (!formData.setorDestino) errors.setorDestino = 'Campo obrigatório';
     }
-    if (!formData.unidade) {
-      setDialog({ open: true, loading: false, message: 'Selecione uma Unidade', success: false });
-      return;
-    }
-    if (!formData.setorOrigem) {
-      setDialog({ open: true, loading: false, message: 'Selecione um Setor Origem', success: false });
-      return;
-    }
-    if (!formData.dataInicio || !formData.dataFim) {
-      setDialog({ open: true, loading: false, message: 'Preencha as datas de início e fim', success: false });
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setDialog({ open: true, loading: false, message: 'Preencha todos os campos obrigatórios destacados em vermelho', success: false });
       return;
     }
 
-    // Abre o dialog com loading
     setDialog({ open: true, loading: true, message: 'Processando escala...', success: false });
     setSubmitting(true);
     
     try {
-      let response;
-      if (isPautista) {
-        response = await escalaService.escalarPautistas(formData);
-      } else {
-        response = await escalaService.escalarAvaliadores(formData);
-      }
+      const response = await escalaService.escalar(formData);
       
-      // Atualiza o dialog com a mensagem de sucesso
+      const tipoLabel = formData.tipoEscala === 'AVALIADOR' ? 'avaliadores' : 'apoio';
       setDialog({ 
         open: true, 
         loading: false, 
-        message: response?.message || `Processo de escala de ${isPautista ? 'pautistas' : 'avaliadores'} iniciado!`, 
+        message: response?.message || `Processo de escala de ${tipoLabel} iniciado!`, 
         success: true 
       });
-      
-      // Limpar formulário após sucesso (opcional)
-      // setFormData({ ... });
     } catch (error) {
       console.error('Erro ao escalar:', error);
-      // Extrair mensagem de erro do backend (StandardError)
       let errorMessage = 'Erro ao processar escala';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -473,10 +451,10 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
   };
 
   return (
-    <PageContainer title={title} description={`Página de ${title}`}>
-      <DashboardCard title={title}>
+    <PageContainer title="Escala" description="Página de Escala">
+      <DashboardCard title="Escala">
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* Espécie Tarefa - Autocomplete com busca na API do Sapiens */}
+          {/* Espécie Tarefa */}
           <Autocomplete
             options={especieTarefaOptions}
             getOptionLabel={(option) => option.nome || ''}
@@ -484,6 +462,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             loading={especieTarefaLoading}
             onChange={(event, newValue) => {
               setFormData({ ...formData, especieTarefa: newValue });
+              if (newValue) setFieldErrors(prev => ({ ...prev, especieTarefa: undefined }));
             }}
             onInputChange={(event, newInputValue) => {
               setEspecieTarefaSearchTerm(newInputValue);
@@ -493,10 +472,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Espécie Tarefa"
+                label="Espécie Tarefa *"
                 variant="outlined"
                 fullWidth
                 placeholder="Digite para buscar..."
+                error={!!fieldErrors.especieTarefa}
+                helperText={fieldErrors.especieTarefa}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -510,7 +491,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             )}
           />
 
-          {/* Unidade - Autocomplete com busca na API do Sapiens (filtro PFPA) */}
+          {/* Unidade */}
           <Autocomplete
             options={unidadeOptions}
             getOptionLabel={(option) => `${option.nome}${option.sigla ? ` (${option.sigla})` : ''}`}
@@ -518,6 +499,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             loading={unidadeLoading}
             onChange={(event, newValue) => {
               setFormData({ ...formData, unidade: newValue });
+              if (newValue) setFieldErrors(prev => ({ ...prev, unidade: undefined }));
             }}
             onInputChange={(event, newInputValue) => {
               setUnidadeSearchTerm(newInputValue);
@@ -527,10 +509,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Unidade"
+                label="Unidade *"
                 variant="outlined"
                 fullWidth
                 placeholder="Digite para buscar unidade PFPA..."
+                error={!!fieldErrors.unidade}
+                helperText={fieldErrors.unidade}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -544,7 +528,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             )}
           />
 
-          {/* Setor Origem - Autocomplete com busca na API do Sapiens */}
+          {/* Setor Origem */}
           <Autocomplete
             options={setorOrigemOptions}
             getOptionLabel={(option) => option.nome || ''}
@@ -553,6 +537,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             disabled={!formData.unidade}
             onChange={(event, newValue) => {
               setFormData({ ...formData, setorOrigem: newValue });
+              if (newValue) setFieldErrors(prev => ({ ...prev, setorOrigem: undefined }));
             }}
             onInputChange={(event, newInputValue) => {
               setSetorOrigemSearchTerm(newInputValue);
@@ -587,10 +572,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Setor Origem"
+                label="Setor Origem *"
                 variant="outlined"
                 fullWidth
                 placeholder={!formData.unidade ? "Selecione uma unidade primeiro" : "Digite para buscar..."}
+                error={!!fieldErrors.setorOrigem}
+                helperText={fieldErrors.setorOrigem}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -653,6 +640,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                 loading={unidadeDestinoLoading}
                 onChange={(event, newValue) => {
                   setFormData({ ...formData, unidadeDestino: newValue });
+                  if (newValue) setFieldErrors(prev => ({ ...prev, unidadeDestino: undefined }));
                 }}
                 onInputChange={(event, newInputValue) => {
                   setUnidadeDestinoSearchTerm(newInputValue);
@@ -662,10 +650,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Unidade Destino"
+                    label="Unidade Destino *"
                     variant="outlined"
                     fullWidth
                     placeholder="Digite para buscar unidade destino..."
+                    error={!!fieldErrors.unidadeDestino}
+                    helperText={fieldErrors.unidadeDestino}
                     InputProps={{
                       ...params.InputProps,
                       endAdornment: (
@@ -688,6 +678,7 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                 disabled={!formData.unidadeDestino}
                 onChange={(event, newValue) => {
                   setFormData({ ...formData, setorDestino: newValue });
+                  if (newValue) setFieldErrors(prev => ({ ...prev, setorDestino: undefined }));
                 }}
                 onInputChange={(event, newInputValue) => {
                   setSetorDestinoSearchTerm(newInputValue);
@@ -722,10 +713,12 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Setor Destino"
+                    label="Setor Destino *"
                     variant="outlined"
                     fullWidth
                     placeholder={!formData.unidadeDestino ? "Selecione uma unidade destino primeiro" : "Digite para buscar..."}
+                    error={!!fieldErrors.setorDestino}
+                    helperText={fieldErrors.setorDestino}
                     InputProps={{
                       ...params.InputProps,
                       endAdornment: (
@@ -743,14 +736,17 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
           {/* Data Início */}
           <TextField
-            label="Data Início"
+            label="Data Início *"
             type="date"
             fullWidth
             variant="outlined"
             value={formData.dataInicio}
-            onChange={(e) =>
-              setFormData({ ...formData, dataInicio: e.target.value })
-            }
+            onChange={(e) => {
+              setFormData({ ...formData, dataInicio: e.target.value });
+              if (e.target.value) setFieldErrors(prev => ({ ...prev, dataInicio: undefined }));
+            }}
+            error={!!fieldErrors.dataInicio}
+            helperText={fieldErrors.dataInicio}
             InputLabelProps={{
               shrink: true,
             }}
@@ -758,14 +754,17 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
 
           {/* Data Fim */}
           <TextField
-            label="Data Fim"
+            label="Data Fim *"
             type="date"
             fullWidth
             variant="outlined"
             value={formData.dataFim}
-            onChange={(e) =>
-              setFormData({ ...formData, dataFim: e.target.value })
-            }
+            onChange={(e) => {
+              setFormData({ ...formData, dataFim: e.target.value });
+              if (e.target.value) setFieldErrors(prev => ({ ...prev, dataFim: undefined }));
+            }}
+            error={!!fieldErrors.dataFim}
+            helperText={fieldErrors.dataFim}
             InputLabelProps={{
               shrink: true,
             }}
@@ -851,23 +850,67 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
             )}
           />
 
-          {/* Pautistas ou Avaliadores - Multiple */}
-          {isPautista ? (
+          {/* Subnúcleos - Multiple */}
+          <Autocomplete
+            multiple
+            options={subnucleoOptions}
+            getOptionLabel={(option) => option.label}
+            value={formData.subnucleos}
+            onChange={(e, newValue) => {
+              setFormData({ ...formData, subnucleos: newValue });
+              if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, subnucleos: undefined }));
+            }}
+            filterSelectedOptions
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Subnúcleos *"
+                variant="outlined"
+                placeholder="Selecione os subnúcleos"
+                error={!!fieldErrors.subnucleos}
+                helperText={fieldErrors.subnucleos}
+              />
+            )}
+          />
+
+          {/* Tipo de Escala */}
+          <TextField
+            select
+            label="Tipo de Escala *"
+            value={formData.tipoEscala}
+            onChange={(e) => {
+              setFormData({ ...formData, tipoEscala: e.target.value });
+              if (e.target.value) setFieldErrors(prev => ({ ...prev, tipoEscala: undefined }));
+            }}
+            variant="outlined"
+            fullWidth
+            error={!!fieldErrors.tipoEscala}
+            helperText={fieldErrors.tipoEscala}
+          >
+            {tipoEscalaOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {/* Usuários (Avaliadores ou Apoio) - Aparece apenas após selecionar tipo de escala */}
+          {formData.tipoEscala && (
             <Autocomplete
               multiple
-              options={pautistaOptions}
+              options={usuarioOptions}
               getOptionLabel={(option) => option.nome || ''}
               value={formData.pessoas}
-              loading={pautistaLoading}
+              loading={usuarioLoading}
               onChange={(event, newValue) => {
                 setFormData({ ...formData, pessoas: newValue });
               }}
               onInputChange={(event, newInputValue) => {
-                setPautistaSearchTerm(newInputValue);
+                setUsuarioSearchTerm(newInputValue);
               }}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               filterSelectedOptions
-              noOptionsText="Nenhum pautista encontrado"
+              noOptionsText="Nenhum usuário encontrado"
               renderOption={(props, option) => {
                 const { key, ...otherProps } = props;
                 return (
@@ -883,74 +926,21 @@ const EscalaForm = ({ tipo = 'pautista' }) => {
                     }}
                   >
                     <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.setor}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.setor || option.email}</span>
                   </Box>
                 );
               }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={pessoaLabel}
+                  label={formData.tipoEscala === 'AVALIADOR' ? 'Selecione os avaliadores' : 'Selecione os agentes de apoio'}
                   variant="outlined"
                   placeholder="Selecione ou digite para filtrar..."
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {pautistaLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-          ) : (
-            <Autocomplete
-              multiple
-              options={avaliadorOptions}
-              getOptionLabel={(option) => option.nome || ''}
-              value={formData.pessoas}
-              loading={avaliadorLoading}
-              onChange={(event, newValue) => {
-                setFormData({ ...formData, pessoas: newValue });
-              }}
-              onInputChange={(event, newInputValue) => {
-                setAvaliadorSearchTerm(newInputValue);
-              }}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              filterSelectedOptions
-              noOptionsText="Nenhum avaliador encontrado"
-              renderOption={(props, option) => {
-                const { key, ...otherProps } = props;
-                return (
-                  <Box
-                    component="li"
-                    key={key}
-                    {...otherProps}
-                    sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'flex-start !important',
-                      py: 1.5,
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.setor}</span>
-                  </Box>
-                );
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={pessoaLabel}
-                  variant="outlined"
-                  placeholder="Selecione ou digite para filtrar..."
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {avaliadorLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {usuarioLoading ? <CircularProgress color="inherit" size={20} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
