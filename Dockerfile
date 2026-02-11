@@ -27,7 +27,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Expor porta 80
 
-EXPOSE 5471
+EXPOSE 5473
 
 # Comando para iniciar o nginx
 CMD ["nginx", "-g", "daemon off;"]

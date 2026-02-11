@@ -223,7 +223,7 @@ const BrazilMapOverview = () => {
                 </Box>
             }
         >
-            <Box sx={{ display: 'flex', gap: 2, height: '500px' }}>
+            <Box sx={{ display: 'flex', gap: 2, height: '370px' }}>
                 {/* Mapa */}
                 <Box 
                     onMouseMove={handleMouseMove}

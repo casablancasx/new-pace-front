@@ -57,28 +57,21 @@ const PautaOverview = () => {
     // chart options
     const optionscolumnchart = {
         chart: {
-            type: 'bar',
+            type: 'line',
             fontFamily: "'Plus Jakarta Sans', sans-serif;",
             foreColor: '#adb0bb',
             toolbar: { show: true },
             height: 370,
         },
         colors: [primary, secondary],
-        plotOptions: {
-            bar: {
-                horizontal: false,
-                barHeight: '60%',
-                columnWidth: '42%',
-                borderRadius: [6],
-                borderRadiusApplication: 'end',
-                borderRadiusWhenStacked: 'all',
-            },
-        },
         stroke: {
-            show: true,
-            width: 5,
-            lineCap: "butt",
-            colors: ["transparent"],
+            curve: 'smooth',
+            width: 3,
+        },
+        markers: {
+            size: 4,
+            strokeWidth: 0,
+            hover: { size: 6 },
         },
         dataLabels: { enabled: false },
         legend: { show: true },
@@ -158,7 +151,7 @@ const PautaOverview = () => {
             <Chart
                 options={optionscolumnchart}
                 series={chartData.series}
-                type="bar"
+                type="line"
                 height="370px"
             />
         </DashboardCard>

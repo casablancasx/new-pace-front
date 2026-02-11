@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Stack, CircularProgress } from '@mui/material';
+import { Box, Typography, Stack, Grid, CircularProgress } from '@mui/material';
 import DashboardCard from '../../../components/shared/DashboardCard';
 import api from '../../../services/api';
 
@@ -34,41 +34,49 @@ const TotaisCards = () => {
 
     if (loading) {
         return (
-            <Stack spacing={3}>
+            <Grid container spacing={3}>
                 {[1, 2, 3].map((item) => (
-                    <DashboardCard key={item}>
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                            <CircularProgress size={24} />
-                        </Box>
-                    </DashboardCard>
+                    <Grid key={item} size={{ xs: 12, sm: 6, lg: 4 }}>
+                        <DashboardCard>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                <CircularProgress size={24} />
+                            </Box>
+                        </DashboardCard>
+                    </Grid>
                 ))}
-            </Stack>
+            </Grid>
         );
     }
 
     return (
-        <Stack spacing={3}>
+        <Grid container spacing={3}>
             {/* Card Total Pautas */}
-            <DashboardCard title="Total de Pautas">
-                <Typography variant="h3" fontWeight={700}>
-                    {totais.totalPautas.toLocaleString('pt-BR')}
-                </Typography>
-            </DashboardCard>
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                <DashboardCard title="Total de Pautas">
+                    <Typography variant="h3" fontWeight={700}>
+                        {totais.totalPautas.toLocaleString('pt-BR')}
+                    </Typography>
+                </DashboardCard>
+            </Grid>
 
             {/* Card Total Audiências */}
-            <DashboardCard title="Total de Audiências">
-                <Typography variant="h3" fontWeight={700}>
-                    {totais.totalAudiencias.toLocaleString('pt-BR')}
-                </Typography>
-            </DashboardCard>
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                <DashboardCard title="Total de Audiências">
+                    <Typography variant="h3" fontWeight={700}>
+                        {totais.totalAudiencias.toLocaleString('pt-BR')}
+                    </Typography>
+                </DashboardCard>
+            </Grid>
 
             {/* Card Total Órgãos Julgadores */}
-            <DashboardCard title="Órgãos Julgadores">
-                <Typography variant="h3" fontWeight={700}>
-                    {totais.totalOrgaosJulgadores.toLocaleString('pt-BR')}
-                </Typography>
-            </DashboardCard>
-        </Stack>
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                <DashboardCard title="Órgãos Julgadores">
+                    <Typography variant="h3" fontWeight={700}>
+                        {totais.totalOrgaosJulgadores.toLocaleString('pt-BR')}
+                    </Typography>
+                </DashboardCard>
+            </Grid>
+        </Grid>
     );
 };
 
