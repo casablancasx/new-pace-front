@@ -348,7 +348,7 @@ const UploadPlanilha = () => {
                 >
                   <TableHead>
                     <TableRow>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="subtitle2" fontWeight={600}>
                           ID
                         </Typography>
@@ -363,17 +363,17 @@ const UploadPlanilha = () => {
                           Data Upload
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="subtitle2" fontWeight={600}>
                           Pautas
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="subtitle2" fontWeight={600}>
                           Audiências
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="subtitle2" fontWeight={600}>
                           Status
                         </Typography>
@@ -384,7 +384,7 @@ const UploadPlanilha = () => {
                     {planilhas.length > 0 ? (
                       planilhas.map((planilha) => (
                         <TableRow key={planilha.planilhaId}>
-                          <TableCell>
+                          <TableCell align="center">
                             <Typography variant="subtitle2" fontWeight={500}>
                               {planilha.planilhaId}
                             </Typography>
@@ -402,38 +402,24 @@ const UploadPlanilha = () => {
                               {new Date(planilha.dataUpload).toLocaleString('pt-BR')}
                             </Typography>
                           </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={planilha.pautas}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
+                          <TableCell align="center">
+                            <Typography variant="subtitle2" fontWeight={400}>
+                              {planilha.pautas}
+                            </Typography>
                           </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={planilha.audiencias}
-                              size="small"
-                              color="secondary"
-                              variant="outlined"
-                            />
+                          <TableCell align="center">
+                            <Typography variant="subtitle2" fontWeight={400}>
+                              {planilha.audiencias}
+                            </Typography>
                           </TableCell>
-                          <TableCell>
-                            {planilha.processamentoConcluido ? (
-                              <Chip
-                                icon={<IconCheck size={16} />}
-                                label="Concluído"
-                                size="small"
-                                color="success"
-                              />
-                            ) : (
-                              <Chip
-                                icon={<IconClock size={16} />}
-                                label="Processando"
-                                size="small"
-                                color="warning"
-                              />
-                            )}
+                          <TableCell align="center">
+                            <Chip
+                              label={planilha.status === 'SUCESSO' ? 'Sucesso' : planilha.status === 'ERRO' ? 'Erro' : 'Processando'}
+                              size="small"
+                              color={planilha.status === 'SUCESSO' ? 'success' : planilha.status === 'ERRO' ? 'error' : 'warning'}
+                              variant="filled"
+                              sx={{ minWidth: '100px', justifyContent: 'center' }}
+                            />
                           </TableCell>
                         </TableRow>
                       ))

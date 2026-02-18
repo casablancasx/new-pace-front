@@ -17,6 +17,7 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  TableSortLabel,
 } from '@mui/material';
 import { IconFilterOff } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
@@ -77,6 +78,8 @@ const Pautas = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
+  const [orderBy, setOrderBy] = useState('criadoEm');
+  const [sortOrder, setSortOrder] = useState('DESC');
 
   // Estado dos dados
   const [pautas, setPautas] = useState([]);
@@ -107,6 +110,9 @@ const Pautas = () => {
       if (user?.role !== 'ADMIN' && user?.id) {
         filtros.userId = user.id;
       }
+      // Adicionar parametros de ordenação
+      filtros.orderBy = orderBy;
+      filtros.sort = sortOrder;
 
       const response = await pautaService.listar(page, rowsPerPage, filtros);
       setPautas(response.content || []);
@@ -124,7 +130,7 @@ const Pautas = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, filters, user]);
+  }, [page, rowsPerPage, filters, user, orderBy, sortOrder]);
 
   // Buscar pautas quando página, filtros ou rowsPerPage mudam
   useEffect(() => {
@@ -177,6 +183,18 @@ const Pautas = () => {
 
   const handleRowClick = (pautaId) => {
     navigate(`/pautas/${pautaId}`);
+  };
+
+  const handleSort = (field) => {
+    if (orderBy === field) {
+      // Se já está ordenado por esse campo, inverte a direção
+      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+    } else {
+      // Se é um novo campo, define ASC e muda o orderBy
+      setOrderBy(field);
+      setSortOrder('ASC');
+    }
+    setPage(0); // Volta para a primeira página
   };
 
   const handleCloseSnackbar = () => {
@@ -267,7 +285,7 @@ const Pautas = () => {
 
       {/* Tabela de Pautas */}
       <DashboardCard title="Pautas">
-        <Box sx={{ overflowX: 'auto', width: '100%' }}>
+        <Box sx={{ overflowX: 'auto', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -283,14 +301,26 @@ const Pautas = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        ID
-                      </Typography>
+                      <TableSortLabel
+                        active={orderBy === 'pautaId'}
+                        direction={orderBy === 'pautaId' ? sortOrder.toLowerCase() : 'asc'}
+                        onClick={() => handleSort('pautaId')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          ID
+                        </Typography>
+                      </TableSortLabel>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        Data
-                      </Typography>
+                      <TableSortLabel
+                        active={orderBy === 'data'}
+                        direction={orderBy === 'data' ? sortOrder.toLowerCase() : 'asc'}
+                        onClick={() => handleSort('data')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Data
+                        </Typography>
+                      </TableSortLabel>
                     </TableCell>
                     <TableCell sx={{ minWidth: 200 }}>
                       <Typography variant="subtitle2" fontWeight={600}>
@@ -313,9 +343,26 @@ const Pautas = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        Criado Em
-                      </Typography>
+                      <TableSortLabel
+                        active={orderBy === 'criadoEm'}
+                        direction={orderBy === 'criadoEm' ? sortOrder.toLowerCase() : 'asc'}
+                        onClick={() => handleSort('criadoEm')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Criado Em
+                        </Typography>
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={orderBy === 'atualizadoEm'}
+                        direction={orderBy === 'atualizadoEm' ? sortOrder.toLowerCase() : 'asc'}
+                        onClick={() => handleSort('atualizadoEm')}
+                      >
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          Atualizado Em
+                        </Typography>
+                      </TableSortLabel>
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -328,8 +375,8 @@ const Pautas = () => {
                         sx={
                           pauta.possuiNovaAudiencia
                             ? {
-                                backgroundColor: '#e8f5e9',
-                                '&:hover': { backgroundColor: '#d0ebd4' },
+                                backgroundColor: '#e3f2fd',
+                                '&:hover': { backgroundColor: '#bbdefb' },
                               }
                             : {}
                         }
@@ -369,11 +416,16 @@ const Pautas = () => {
                             {pauta.criadoEm ? new Date(pauta.criadoEm).toLocaleString('pt-BR') : '-'}
                           </Typography>
                         </TableCell>
+                        <TableCell>
+                          <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                            {pauta.atualizadoEm ? new Date(pauta.atualizadoEm).toLocaleString('pt-BR') : '-'}
+                          </Typography>
+                        </TableCell>
                       </ClickableTableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} align="center">
+                      <TableCell colSpan={8} align="center">
                         <Typography color="textSecondary" sx={{ py: 3 }}>
                           Nenhuma pauta encontrada
                         </Typography>
