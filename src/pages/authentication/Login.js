@@ -95,7 +95,7 @@ const Login2 = () => {
             <Box sx={{ textAlign: 'center', mb: 5 }}>
               <Box sx={{ mb: 2 }}>
                 <img
-                  src="/src/assets/images/logos/logodopace.png"
+                  src="https://i.ibb.co/Mk6kS335/logodopace.png"
                   alt="PACE Logo"
                   style={{ maxWidth: 200, height: 'auto' }}
                 />

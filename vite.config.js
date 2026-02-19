@@ -38,12 +38,28 @@ export default defineConfig({
 
 
     
-    // plugins: [react(),svgr({
-    //   exportAsDefault: true
-    // })],
-
     plugins: [svgr({ 
         throwIfNamespace: false,
         svgo: false 
     }), react()],
+
+    build: {
+        outDir: 'dist',
+        assetsDir: 'assets',
+        minify: 'esbuild',
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor': [
+                        'react',
+                        'react-dom',
+                        '@mui/material',
+                        '@mui/icons-material',
+                    ],
+                },
+            },
+        },
+    },
+
+    publicDir: 'public',
 });

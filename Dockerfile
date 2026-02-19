@@ -1,33 +1,26 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Use the official Node.js image as the base image
+FROM node:20-alpine
 
-# Definir diretório de trabalho
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copiar arquivos de dependências
-COPY package.json package-lock.json* ./
+# Copy package.json and package-lock.json to the working directory
+COPY package*.json ./
 
-# Instalar dependências
-RUN npm ci --legacy-peer-deps
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
-# Copiar todo o código fonte (incluindo imagens em src/assets)
+# Install static server
+RUN npm i -g serve
+
+# Copy the rest of the application code
 COPY . .
 
-# Build da aplicação
+# Build the app
 RUN npm run build
 
-# Stage 2: Production
-FROM nginx:alpine AS production
+# Expose the port
+EXPOSE 5471
 
-# Copiar configuração customizada do nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar o build do stage anterior
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Expor porta 80
-
-EXPOSE 5473
-
-# Comando para iniciar o nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the built app
+CMD ["serve", "-s", "dist", "-l", "5471"]

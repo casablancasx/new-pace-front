@@ -53,7 +53,7 @@ const Sidebar = (props) => {
             }}
           >
             <img
-              src="/src/assets/images/logos/logodopace.png"
+              src="https://i.ibb.co/Mk6kS335/logodopace.png"
               alt="PACE Logo"
               style={{
                 maxWidth: '150px',
@@ -104,7 +104,7 @@ const Sidebar = (props) => {
         }}
       >
         <img
-          src="/src/assets/images/logos/logodopace.png"
+          src="/src/assets/images/logos/logodopacenovo.jpg"
           alt="PACE Logo"
           style={{
             maxWidth: '150px',
