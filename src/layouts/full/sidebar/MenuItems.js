@@ -132,14 +132,6 @@ const Menuitems = [
     icon: IconGavel,
     href: '/audiencias',
     roles: ['PAUTISTA', 'AVALIADOR', 'ADMIN','APOIO'],
-  }
-  ,
-  {
-    id: uniqueId(),
-    title: 'Advogados Prioritarios',
-    icon: IconUserPlus,
-    href: '/advogados-prioritarios',
-    roles: ['ADMIN'],
   },
   {
     id: uniqueId(),

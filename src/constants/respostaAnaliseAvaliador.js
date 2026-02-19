@@ -144,11 +144,13 @@ export const CLASSE_JUDICIAL_OPTIONS = [
 export const VIEW_RELATORIO = {
   ESCALA: 'ESCALA',
   AUDIENCIA: 'AUDIENCIA',
+  AUDIENCIA_NAO_ENCONTRADA: 'AUDIENCIA_NAO_ENCONTRADA',
 };
 
 export const VIEW_RELATORIO_OPTIONS = [
   { value: 'ESCALA', label: 'Escala' },
   { value: 'AUDIENCIA', label: 'Audiência' },
+  { value: 'AUDIENCIA_NAO_ENCONTRADA', label: 'Audiência Não Encontrada' },
 ];
 
 /**

@@ -113,6 +113,60 @@ const api = {
       body: JSON.stringify(data),
     });
   },
+
+  async downloadBlob(endpoint) {
+    const token = localStorage.getItem('token');
+    
+    const defaultHeaders = {};
+
+    if (token) {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      method: 'GET',
+      headers: defaultHeaders,
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+    if (response.status === 401) {
+      if (endpoint.includes('/auth/login')) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Erro ao fazer login');
+      }
+
+      try {
+        console.log('[API] Token expirado. Tentando refresh...');
+        
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = authService.refreshToken();
+        }
+        
+        await refreshPromise;
+        isRefreshing = false;
+        
+        console.log('[API] Token renovado. Repetindo requisição...');
+        return this.downloadBlob(endpoint);
+      } catch (refreshError) {
+        isRefreshing = false;
+        console.error('[API] Falha ao renovar token:', refreshError);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth/login';
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+    }
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const errorMessage = errorBody.message || errorBody.error || `Erro na requisição (${response.status})`;
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  },
 };
 
 export default api;

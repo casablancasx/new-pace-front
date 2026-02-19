@@ -6,7 +6,7 @@ import Scrollbar from "../../../components/custom-scroll/Scrollbar";
 const Sidebar = (props) => {
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
-  const sidebarWidth = '270px';
+  const sidebarWidth = '280px';
   const miniSidebarWidth = '0px';
 
   if (lgUp) {

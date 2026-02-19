@@ -26,6 +26,155 @@ import usuarioService from '../../services/usuarioService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, VIEW_RELATORIO_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
 
+// Função helper para obter colunas dinâmicas baseado no tipo de view
+const getColumnasRelatorio = (viewType) => {
+  const colunas = {
+    ESCALA: [
+      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
+      { id: 'nome', label: 'Nome', field: 'nome' },
+      { id: 'data', label: 'Data', field: 'data' },
+      { id: 'horario', label: 'Horário', field: 'horario' },
+      { id: 'turno', label: 'Turno', field: 'turno' },
+      { id: 'sala', label: 'Sala', field: 'sala' },
+      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
+      { id: 'tipoContestacao', label: 'Tipo Contestação', field: 'tipoContestacao' },
+      { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
+      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
+      { id: 'analiseAvaliador', label: 'Análise', field: 'analiseAvaliador' },
+      { id: 'observacao', label: 'Observação', field: 'observacao' },
+    ],
+    AUDIENCIA: [
+      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
+      { id: 'data', label: 'Data', field: 'data' },
+      { id: 'horario', label: 'Horário', field: 'horario' },
+      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
+      { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
+      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
+      { id: 'tipoContestacao', label: 'Tipo Contestação', field: 'tipoContestacao' },
+      { id: 'sala', label: 'Sala', field: 'sala' },
+      { id: 'nomeParte', label: 'Nome Parte', field: 'nomeParte' },
+      { id: 'analise', label: 'Análise', field: 'analise' },
+      { id: 'observacao', label: 'Observação', field: 'observacao' },
+    ],
+    AUDIENCIA_NAO_ENCONTRADA: [
+      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
+      { id: 'data', label: 'Data', field: 'data' },
+      { id: 'horario', label: 'Horário', field: 'horario' },
+      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
+      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
+      { id: 'sala', label: 'Sala', field: 'sala' },
+      { id: 'nomeParte', label: 'Nome Parte', field: 'nomeParte' },
+    ],
+  };
+
+  return colunas[viewType] || colunas.ESCALA;
+};
+
+// Função helper para buscar dados baseado no tipo de view
+const buscarDadosRelatorio = async (viewType, filtros) => {
+  switch (viewType) {
+    case 'AUDIENCIA':
+      return await relatorioService.buscarAudiencia(filtros);
+    case 'AUDIENCIA_NAO_ENCONTRADA':
+      return await relatorioService.buscarAudienciaNaoEncontrada(filtros);
+    case 'ESCALA':
+    default:
+      return await relatorioService.buscarEscala(filtros);
+  }
+};
+
+// Mapeamento de cores para cada status de análise
+const ANALISE_CORES = {
+  'NAO_ESCALADA': { bg: '#FFEBEE', text: '#C62828', label: 'Não Escalada' },
+  'ANALISE_PENDENTE': { bg: '#FFF3E0', text: '#E65100', label: 'Análise Pendente' },
+  'COMPARECER': { bg: '#E8F5E9', text: '#2E7D32', label: 'Comparecer' },
+  'NAO_COMPARECER': { bg: '#FFEBEE', text: '#C62828', label: 'Não Comparecer' },
+  'CANCELADA': { bg: '#F3E5F5', text: '#6A1B9A', label: 'Cancelada' },
+  'REDESIGNADA': { bg: '#FFF9C4', text: '#F57F17', label: 'Redesignada' },
+};
+
+// Mapeamento de cores para cada tipo de contestação
+const TIPO_CONTESTACAO_CORES = {
+  'TIPO1': { bg: '#E3F2FD', text: '#1565C0', label: 'TIPO 1' },
+  'TIPO2': { bg: '#F3E5F5', text: '#6A1B9A', label: 'TIPO 2' },
+  'TIPO3': { bg: '#E8F5E9', text: '#2E7D32', label: 'TIPO 3' },
+  'TIPO4': { bg: '#FFF3E0', text: '#E65100', label: 'TIPO 4' },
+  'TIPO5': { bg: '#FCE4EC', text: '#C2185B', label: 'TIPO 5' },
+  'SEM_CONTESTACAO': { bg: '#F0F4C3', text: '#827717', label: 'SEM CONTESTAÇÃO' },
+  'SEM_TIPO': { bg: '#ECEFF1', text: '#37474F', label: 'SEM TIPO' },
+  'ERRO_SAPIENS': { bg: '#FFEBEE', text: '#C62828', label: 'ERRO SAPIENS' },
+};
+
+// Componente Badge para análise
+const AnalysisChip = ({ value }) => {
+  const analise = ANALISE_CORES[value] || ANALISE_CORES['ANALISE_PENDENTE'];
+  
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '140px',
+        height: '32px',
+        backgroundColor: analise.bg,
+        color: analise.text,
+        borderRadius: '16px',
+        fontSize: '12px',
+        fontWeight: 600,
+        textAlign: 'center',
+        padding: '4px 8px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      {analise.label}
+    </Box>
+  );
+};
+
+// Componente Badge para tipo contestação
+const TipoContestacaoChip = ({ value }) => {
+  const contestacao = TIPO_CONTESTACAO_CORES[value] || { bg: '#ECEFF1', text: '#37474F', label: value || '-' };
+  
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '140px',
+        height: '32px',
+        backgroundColor: contestacao.bg,
+        color: contestacao.text,
+        borderRadius: '16px',
+        fontSize: '12px',
+        fontWeight: 600,
+        textAlign: 'center',
+        padding: '4px 8px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      {contestacao.label}
+    </Box>
+  );
+};
+
+// Função para renderizar conteúdo da célula
+const renderCellContent = (fieldId, value) => {
+  if (fieldId === 'analiseAvaliador' || fieldId === 'analise') {
+    return <AnalysisChip value={value} />;
+  }
+  if (fieldId === 'tipoContestacao') {
+    return <TipoContestacaoChip value={value} />;
+  }
+  return <Typography color="textSecondary" variant="subtitle2">{value || '-'}</Typography>;
+};
+
+
 // Card customizado com mais sombra e bordas arredondadas
 const StyledCard = styled(Card)(() => ({
   borderRadius: 16,
@@ -504,6 +653,14 @@ const Relatorio = () => {
     }
   };
 
+  // Atualizar tabela quando a view mudar
+  useEffect(() => {
+    if (buscaRealizada) {
+      setPage(0);
+      handleBuscarTabela(0);
+    }
+  }, [formData.viewRelatorio]);
+
   const handleBuscar = async (newPage = 0) => {
     if (!formData.dataInicio || !formData.dataFim) {
       return;
@@ -525,16 +682,16 @@ const Relatorio = () => {
         view: formData.viewRelatorio || 'ESCALA',
       };
 
-      const [escalaResponse, contestacaoResponse, totaisResponse, setoresResponse, subnucleosResponse] = await Promise.all([
-        relatorioService.buscarEscala(filtros),
+      const [tabelaResponse, contestacaoResponse, totaisResponse, setoresResponse, subnucleosResponse] = await Promise.all([
+        buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros),
         relatorioService.buscarContestacao(filtros),
         relatorioService.buscarTotais(filtros),
         relatorioService.buscarSetores(filtros),
         relatorioService.buscarSubnucleos(filtros),
       ]);
 
-      setResultados(escalaResponse.content || []);
-      setTotalElements(escalaResponse.totalElements || 0);
+      setResultados(tabelaResponse.content || []);
+      setTotalElements(tabelaResponse.totalElements || 0);
       setPage(newPage);
       setContestacoes(contestacaoResponse || []);
       setTotais(totaisResponse || { totalAudiencias: 0, totalPautas: 0 });
@@ -576,10 +733,10 @@ const Relatorio = () => {
         view: formData.viewRelatorio || 'ESCALA',
       };
 
-      const escalaResponse = await relatorioService.buscarEscala(filtros);
+      const response = await buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros);
 
-      setResultados(escalaResponse.content || []);
-      setTotalElements(escalaResponse.totalElements || 0);
+      setResultados(response.content || []);
+      setTotalElements(response.totalElements || 0);
       setPage(newPage);
     } catch (error) {
       console.error('Erro ao buscar tabela:', error);
@@ -620,6 +777,63 @@ const Relatorio = () => {
     setTotais({ totalAudiencias: 0, totalPautas: 0 });
     setSetores([]);
     setSubnucleos([]);
+  };
+
+  // Estado para controlar o carregamento de Excel
+  const [excelLoading, setExcelLoading] = useState(false);
+
+  const handleGerarExcel = async () => {
+    if (!buscaRealizada) {
+      return;
+    }
+
+    if (!formData.dataInicio || !formData.dataFim) {
+      return;
+    }
+
+    setExcelLoading(true);
+    try {
+      const filtros = {
+        dataInicio: formData.dataInicio,
+        dataFim: formData.dataFim,
+        userId: formData.usuario?.id || null,
+        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
+        tipoContestacao: formData.tipoContestacao || null,
+        subnucleo: formData.subnucleo || null,
+        classeJudicial: formData.classeJudicial || null,
+      };
+
+      let blob;
+      let nomeArquivo;
+
+      const viewType = formData.viewRelatorio || 'ESCALA';
+      
+      if (viewType === 'AUDIENCIA') {
+        blob = await relatorioService.gerarExcelAudiencia(filtros);
+        nomeArquivo = `Audiencias_${formData.dataInicio}_${formData.dataFim}.xlsx`;
+      } else if (viewType === 'AUDIENCIA_NAO_ENCONTRADA') {
+        blob = await relatorioService.gerarExcelAudienciaNaoEncontrada(filtros);
+        nomeArquivo = `Audiencias_nao_encontradas_${formData.dataInicio}_${formData.dataFim}.xlsx`;
+      } else {
+        blob = await relatorioService.gerarExcelEscala(filtros);
+        nomeArquivo = `Escala_${formData.dataInicio}_${formData.dataFim}.xlsx`;
+      }
+
+      // Criar URL blob e fazer download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', nomeArquivo);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao gerar e baixar Excel:', error);
+      alert('Erro ao gerar o arquivo Excel. Verifique o console para mais detalhes.');
+    } finally {
+      setExcelLoading(false);
+    }
   };
 
   return (
@@ -803,9 +1017,10 @@ const Relatorio = () => {
                 variant="outlined"
                 color="success"
                 startIcon={<IconFileSpreadsheet size={18} />}
-                disabled={true}
+                onClick={handleGerarExcel}
+                disabled={!buscaRealizada || excelLoading}
               >
-                Gerar Excel
+                {excelLoading ? 'Gerando Excel...' : 'Gerar Excel'}
               </Button>
             </Box>
           </Box>
@@ -905,41 +1120,29 @@ const Relatorio = () => {
               <Table aria-label="tabela de relatório">
                 <TableHead>
                   <TableRow>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Processo</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Nome</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Data</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Horário</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Turno</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Sala</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Órgão Julgador</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Tipo Contestação</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Subnúcleo</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Classe Judicial</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Análise</Typography></TableCell>
-                    <TableCell><Typography variant="subtitle2" fontWeight={600}>Observação</Typography></TableCell>
+                    {getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').map((coluna) => (
+                      <TableCell key={coluna.id} align="center">
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {coluna.label}
+                        </Typography>
+                      </TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {resultados.length > 0 ? (
                     resultados.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell><Typography variant="subtitle2">{item.numeroProcesso || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.nome || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.data || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.horario || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.turno || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.sala || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.orgaoJulgador || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.tipoContestacao || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.subnucleo || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.classeJudicial || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.analiseAvaliador || '-'}</Typography></TableCell>
-                        <TableCell><Typography color="textSecondary" variant="subtitle2">{item.observacao || '-'}</Typography></TableCell>
+                      <TableRow key={item.id || item.audienciaId}>
+                        {getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').map((coluna) => (
+                          <TableCell key={coluna.id} align="center">
+                            {renderCellContent(coluna.id, item[coluna.field])}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={12} align="center">
+                      <TableCell colSpan={getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').length} align="center">
                         <Typography color="textSecondary" sx={{ py: 3 }}>
                           Nenhum resultado encontrado
                         </Typography>

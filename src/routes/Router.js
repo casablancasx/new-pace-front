@@ -31,7 +31,6 @@ const EscalaForm = lazy(() => import("../pages/escala/EscalaForm"));
 const Pautas = lazy(() => import("../pages/pautas/Pautas"));
 const DetalhesPauta = lazy(() => import("../pages/pautas/DetalhesPauta"));
 const Audiencias = lazy(() => import("../pages/audiencias/Audiencias"));
-const AdvogadosPrioritarios = lazy(() => import("../pages/audiencias/AdvogadosPrioritarios"));
 const Avaliadores = lazy(() => import("../pages/equipe/Avaliadores"));
 const Pautistas = lazy(() => import("../pages/equipe/Pautistas"));
 const Apoio = lazy(() => import("../pages/equipe/Apoio"));
@@ -73,7 +72,6 @@ const Router = [
       { path: '/pautas', exact: true, element: <Pautas /> },
       { path: '/pautas/:id', exact: true, element: <DetalhesPauta /> },
       { path: '/audiencias', exact: true, element: <Audiencias /> },
-      { path: '/advogados-prioritarios', exact: true, element: <AdvogadosPrioritarios /> },
       { 
         path: '/relatorio', 
         exact: true, 
