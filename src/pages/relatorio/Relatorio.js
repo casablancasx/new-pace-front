@@ -682,7 +682,7 @@ const Relatorio = () => {
         view: formData.viewRelatorio || 'ESCALA',
       };
 
-      const [tabelaResponse, contestacaoResponse, totaisResponse, setoresResponse, subnucleosResponse] = await Promise.all([
+      const results = await Promise.allSettled([
         buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros),
         relatorioService.buscarContestacao(filtros),
         relatorioService.buscarTotais(filtros),
@@ -690,13 +690,53 @@ const Relatorio = () => {
         relatorioService.buscarSubnucleos(filtros),
       ]);
 
-      setResultados(tabelaResponse.content || []);
-      setTotalElements(tabelaResponse.totalElements || 0);
-      setPage(newPage);
-      setContestacoes(contestacaoResponse || []);
-      setTotais(totaisResponse || { totalAudiencias: 0, totalPautas: 0 });
-      setSetores(setoresResponse || []);
-      setSubnucleos(subnucleosResponse || []);
+      // Tabela (sempre deve aparecer, mesmo se outros falharem)
+      const tabelaResult = results[0];
+      if (tabelaResult.status === 'fulfilled') {
+        setResultados(tabelaResult.value.content || []);
+        setTotalElements(tabelaResult.value.totalElements || 0);
+        setPage(newPage);
+      } else {
+        console.error('Erro ao buscar tabela:', tabelaResult.reason);
+        setResultados([]);
+        setTotalElements(0);
+      }
+
+      // Contestação
+      const contestacaoResult = results[1];
+      if (contestacaoResult.status === 'fulfilled') {
+        setContestacoes(contestacaoResult.value || []);
+      } else {
+        console.error('Erro ao buscar contestações:', contestacaoResult.reason);
+        setContestacoes([]);
+      }
+
+      // Totais
+      const totaisResult = results[2];
+      if (totaisResult.status === 'fulfilled') {
+        setTotais(totaisResult.value || { totalAudiencias: 0, totalPautas: 0 });
+      } else {
+        console.error('Erro ao buscar totais:', totaisResult.reason);
+        setTotais({ totalAudiencias: 0, totalPautas: 0 });
+      }
+
+      // Setores
+      const setoresResult = results[3];
+      if (setoresResult.status === 'fulfilled') {
+        setSetores(setoresResult.value || []);
+      } else {
+        console.error('Erro ao buscar setores:', setoresResult.reason);
+        setSetores([]);
+      }
+
+      // Subnúcleos
+      const subnucleosResult = results[4];
+      if (subnucleosResult.status === 'fulfilled') {
+        setSubnucleos(subnucleosResult.value || []);
+      } else {
+        console.error('Erro ao buscar subnúcleos:', subnucleosResult.reason);
+        setSubnucleos([]);
+      }
     } catch (error) {
       console.error('Erro ao buscar relatório:', error);
       setResultados([]);
@@ -1026,71 +1066,50 @@ const Relatorio = () => {
           </Box>
         </ReportCard>
 
-        {/* ==================== CAMADA 2: TOTAIS + GRÁFICO ==================== */}
+        {/* ==================== CAMADA 2: TOTAIS + SUBNÚCLEO + CONTESTAÇÃO ==================== */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
-        ) : buscaRealizada && (
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-            {/* Coluna esquerda: Totais empilhados */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: 220, flexShrink: 0 }}>
-              <ReportCard title="Total de Audiências">
-                <Typography variant="h3" fontWeight={700}>
-                  {(totais.totalAudiencias || 0).toLocaleString('pt-BR')}
-                </Typography>
-              </ReportCard>
-
-              <ReportCard title="Total de Pautas">
-                <Typography variant="h3" fontWeight={700}>
-                  {(totais.totalPautas || 0).toLocaleString('pt-BR')}
-                </Typography>
-              </ReportCard>
-            </Box>
-
-            {/* Coluna direita: Gráfico de Contestação ocupando todo o espaço restante */}
-            <Box sx={{ flex: 1, minWidth: 300 }}>
-              <ReportCard title="Contestações por Tipo">
-                {contestacoes.length > 0 ? (
-                  <ContestacaoChart contestacoes={contestacoes} />
-                ) : (
-                  <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
-                    Nenhuma contestação encontrada
-                  </Typography>
+        ) : buscaRealizada && (totais.totalAudiencias > 0 || totais.totalPautas > 0 || subnucleos.length > 0 || contestacoes.length > 0) && (
+          <Box sx={{ display: 'flex', gap: 3, alignItems: 'stretch' }}>
+            {/* INÍCIO: Totais empilhados */}
+            {(totais.totalAudiencias > 0 || totais.totalPautas > 0) && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: 220, flexShrink: 0 }}>
+                {totais.totalAudiencias > 0 && (
+                  <ReportCard title="Total de Audiências">
+                    <Typography variant="h3" fontWeight={700}>
+                      {totais.totalAudiencias.toLocaleString('pt-BR')}
+                    </Typography>
+                  </ReportCard>
                 )}
-              </ReportCard>
-            </Box>
-          </Box>
-        )}
-
-        {/* ==================== CAMADA 2.5: GRÁFICOS DE PIZZA (SETORES E SUBNÚCLEOS) ==================== */}
-        {buscaRealizada && !loading && (
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-            {/* Gráfico de Pizza - Setores */}
-            <Box sx={{ flex: 1, minWidth: 350 }}>
-              <ReportCard title="Distribuição por Setor">
-                {setores.length > 0 ? (
-                  <SetoresChart setores={setores} />
-                ) : (
-                  <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
-                    Nenhum setor encontrado
-                  </Typography>
+                {totais.totalPautas > 0 && (
+                  <ReportCard title="Total de Pautas">
+                    <Typography variant="h3" fontWeight={700}>
+                      {totais.totalPautas.toLocaleString('pt-BR')}
+                    </Typography>
+                  </ReportCard>
                 )}
-              </ReportCard>
-            </Box>
+              </Box>
+            )}
 
-            {/* Gráfico de Pizza - Subnúcleos */}
-            <Box sx={{ flex: 1, minWidth: 350 }}>
-              <ReportCard title="Distribuição por Subnúcleo">
-                {subnucleos.length > 0 ? (
+            {/* MEIO: Subnúcleos */}
+            {subnucleos.length > 0 && (
+              <Box sx={{ flex: 1, minWidth: 280 }}>
+                <ReportCard title="Distribuição por Subnúcleo">
                   <SubnucleosChart subnucleos={subnucleos} />
-                ) : (
-                  <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
-                    Nenhum subnúcleo encontrado
-                  </Typography>
-                )}
-              </ReportCard>
-            </Box>
+                </ReportCard>
+              </Box>
+            )}
+
+            {/* FIM: Contestações - MAIOR CARD */}
+            {contestacoes.length > 0 && (
+              <Box sx={{ flex: 2, minWidth: 350 }}>
+                <ReportCard title="Contestações por Tipo">
+                  <ContestacaoChart contestacoes={contestacoes} />
+                </ReportCard>
+              </Box>
+            )}
           </Box>
         )}
 

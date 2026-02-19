@@ -128,18 +128,29 @@ const BrazilMapOverview = () => {
             // Priority mode - based on audiencias count
             const value = data.audiencias;
             
-            if (value >= 40) return '#b71c1c'; // Critical (Dark Red)
-            if (value >= 20) return '#f44336'; // High (Red)
-            if (value >= 10) return '#e57373'; // Medium (Light Red)
-            if (value >= 1) return '#ffcdd2'; // Low (Very Light Red)
+            // Dynamic scale based on max value found
+            const maxAudiencias = Math.max(...Object.values(mapData).map(d => d?.audiencias || 0));
+            const percentage = maxAudiencias > 0 ? (value / maxAudiencias) * 100 : 0;
+            
+            if (percentage >= 80) return '#b71c1c'; // Critical (Dark Red)
+            if (percentage >= 60) return '#f44336'; // High (Red)
+            if (percentage >= 40) return '#e57373'; // Medium (Light Red)
+            if (percentage >= 20) return '#ffcdd2'; // Low (Very Light Red)
+            if (percentage > 0) return '#ffebee'; // Very Low (Very very Light Red)
             return '#e0e0e0';
         } else {
             // General mode - based on pautas + audiencias
             const value = data.pautas + data.audiencias;
-            if (value >= 40) return theme.palette.primary.dark;
-            if (value >= 20) return theme.palette.primary.main;
-            if (value >= 5) return theme.palette.primary.light;
-            if (value >= 1) return '#bbdefb'; // Very light blue
+            
+            // Dynamic scale based on max value found
+            const maxTotal = Math.max(...Object.values(mapData).map(d => (d?.pautas || 0) + (d?.audiencias || 0)));
+            const percentage = maxTotal > 0 ? (value / maxTotal) * 100 : 0;
+            
+            if (percentage >= 80) return theme.palette.primary.dark;
+            if (percentage >= 60) return theme.palette.primary.main;
+            if (percentage >= 40) return theme.palette.primary.light;
+            if (percentage >= 20) return '#bbdefb'; // Very light blue
+            if (percentage > 0) return '#e3f2fd'; // Ultra light blue
             return '#e0e0e0';
         }
     };
@@ -298,17 +309,17 @@ const BrazilMapOverview = () => {
                 </Box>
 
                 {/* Tabela de estados */}
-                <TableContainer component={Paper} sx={{ width: 280, maxHeight: '100%', overflowY: 'auto' }}>
+                <TableContainer component={Paper} sx={{ width: 380, maxHeight: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
                     <Table stickyHeader size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>UF</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff', fontSize: '0.875rem' }}>UF</TableCell>
                                 {metricMode === 'priority' ? (
-                                    <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Audiências</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff', fontSize: '0.875rem' }}>Audiências</TableCell>
                                 ) : (
                                     <>
-                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Pautas</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff' }}>Aud.</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff', fontSize: '0.875rem' }}>Pautas</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 'bold', backgroundColor: theme.palette.primary.main, color: '#fff', fontSize: '0.875rem' }}>Audiências</TableCell>
                                     </>
                                 )}
                             </TableRow>
@@ -324,7 +335,8 @@ const BrazilMapOverview = () => {
                                         cursor: 'pointer',
                                         backgroundColor: selectedState === state.stateId ? 'rgba(25, 103, 210, 0.15)' : hoveredState === state.stateId ? 'rgba(25, 103, 210, 0.05)' : 'transparent',
                                         '&:hover': { backgroundColor: 'rgba(25, 103, 210, 0.08)' },
-                                        borderLeft: selectedState === state.stateId ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent'
+                                        borderLeft: selectedState === state.stateId ? `3px solid ${theme.palette.primary.main}` : '3px solid transparent',
+                                        '& td': { padding: '10px 8px', fontSize: '0.875rem' }
                                     }}
                                 >
                                     <TableCell sx={{ fontWeight: selectedState === state.stateId ? 'bold' : 'normal' }}>

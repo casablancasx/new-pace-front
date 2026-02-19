@@ -30,14 +30,11 @@ import audienciaService from '../../services/audienciaService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import { getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
 
-// Styled TableRow com destaque para nova audiencia
-const StyledTableRow = styled(TableRow)(({ theme, isNovaAudiencia }) => ({
+// Styled TableRow
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
   cursor: 'pointer',
-  backgroundColor: isNovaAudiencia ? 'rgba(46, 125, 50, 0.08)' : 'inherit',
   '&:hover': {
-    backgroundColor: isNovaAudiencia 
-      ? 'rgba(46, 125, 50, 0.15)' 
-      : theme.palette.action.hover,
+    backgroundColor: theme.palette.action.hover,
   },
 }));
 
@@ -537,8 +534,7 @@ const Audiencias = () => {
                   {audiencias.length > 0 ? (
                     audiencias.map((audiencia) => (
                       <StyledTableRow 
-                        key={audiencia.audienciaId} 
-                        isNovaAudiencia={audiencia.novaAudiencia}
+                        key={audiencia.audienciaId}
                         onClick={() => handleRowClick(audiencia)}
                       >
                         {visibleColumns.id && (

@@ -15,18 +15,18 @@ const Dashboard = () => {
     <PageContainer title="Dashboard" description="this is Dashboard">
       <Box>
         <Grid container spacing={3}>
-          {/* Row 1: Subnúcleo + Contestação */}
+          {/* Row 1: Pautas + Contestação */}
           <Grid
             size={{
               xs: 12,
-              lg: 4
+              lg: 7
             }}>
-            <SubnucleoOverview />
+            <PautaOverview />
           </Grid>
           <Grid
             size={{
               xs: 12,
-              lg: 8
+              lg: 5
             }}>
             <ContestacaoOverview />
           </Grid>
@@ -34,13 +34,13 @@ const Dashboard = () => {
           <Grid size={12}>
             <TotaisCards />
           </Grid>
-          {/* Row 3: Pautas + Mapa */}
+          {/* Row 3: Subnúcleo + Mapa */}
           <Grid
             size={{
               xs: 12,
               lg: 6
             }}>
-            <PautaOverview />
+            <SubnucleoOverview />
           </Grid>
           <Grid
             size={{
