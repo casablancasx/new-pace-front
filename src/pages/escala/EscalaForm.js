@@ -23,6 +23,7 @@ import sapiensService from '../../services/sapiensService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import avaliadorService from '../../services/avaliadorService';
 import apoioService from '../../services/apoioService';
+import pautistaService from '../../services/pautistaService';
 import escalaService from '../../services/escalaService';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -75,6 +76,7 @@ const subnucleoOptions = [
 const tipoEscalaOptions = [
   { label: 'Avaliador', value: 'AVALIADOR' },
   { label: 'Apoio', value: 'APOIO' },
+  {label: 'Pautista', value: 'PAUTISTA' },
 ];
 
 const EscalaForm = () => {
@@ -332,6 +334,8 @@ const EscalaForm = () => {
         let results;
         if (formData.tipoEscala === 'AVALIADOR') {
           results = await avaliadorService.buscar(usuarioSearchTerm);
+        } else if (formData.tipoEscala === 'PAUTISTA') {
+          results = await pautistaService.buscar(usuarioSearchTerm);
         } else {
           results = await apoioService.buscarEquipeParaEscala(usuarioSearchTerm);
         }
@@ -361,6 +365,8 @@ const EscalaForm = () => {
         let results;
         if (formData.tipoEscala === 'AVALIADOR') {
           results = await avaliadorService.buscar('');
+        } else if (formData.tipoEscala === 'PAUTISTA') {
+          results = await pautistaService.buscar('');
         } else {
           results = await apoioService.buscarEquipeParaEscala('');
         }
@@ -424,7 +430,15 @@ const EscalaForm = () => {
     try {
       const response = await escalaService.escalar(formData);
       
-      const tipoLabel = formData.tipoEscala === 'AVALIADOR' ? 'avaliadores' : 'apoio';
+      let tipoLabel;
+      if (formData.tipoEscala === 'AVALIADOR') {
+        tipoLabel = 'avaliadores';
+      } else if (formData.tipoEscala === 'PAUTISTA') {
+        tipoLabel = 'pautistas';
+      } else {
+        tipoLabel = 'apoio';
+      }
+      
       setDialog({ 
         open: true, 
         loading: false, 
@@ -933,7 +947,13 @@ const EscalaForm = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={formData.tipoEscala === 'AVALIADOR' ? 'Selecione os avaliadores' : 'Selecione os agentes de apoio'}
+                  label={
+                    formData.tipoEscala === 'AVALIADOR' 
+                      ? 'Selecione os avaliadores' 
+                      : formData.tipoEscala === 'PAUTISTA'
+                      ? 'Selecione os pautistas'
+                      : 'Selecione os agentes de apoio'
+                  }
                   variant="outlined"
                   placeholder="Selecione ou digite para filtrar..."
                   InputProps={{
