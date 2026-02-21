@@ -364,7 +364,7 @@ const sapiensService = {
 
     const params = new URLSearchParams({
       where: JSON.stringify(where),
-      limit: '10',
+      limit: '1000',
       offset: '0',
       order: JSON.stringify({ id: 'DESC' }),
       populate: JSON.stringify(['populateAll', 'setor.unidade']),

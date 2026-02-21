@@ -1,8 +1,16 @@
 import api from './api';
 
 const pautistaService = {
-  async listar(page = 0, size = 10) {
-    const response = await api.get(`/pautista?page=${page}&size=${size}`);
+  async listar(page = 0, size = 10, nome = '') {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    
+    if (nome && nome.trim()) {
+      params.append('nome', nome.trim());
+    }
+    
+    const response = await api.get(`/usuarios/pautista?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo frontend
     // Formato da API: { content: [...], page: { size, number, totalElements, totalPages } }
@@ -38,13 +46,12 @@ const pautistaService = {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
-    params.append('sort', 'nome');
     
     if (nome && nome.trim()) {
       params.append('nome', nome.trim());
     }
     
-    const response = await api.get(`/pautista?${params.toString()}`);
+    const response = await api.get(`/usuarios/pautista?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo Autocomplete
     return (response.content || []).map(item => ({
@@ -56,15 +63,15 @@ const pautistaService = {
   },
 
   async cadastrar(pautista) {
-    return api.post('/pautista', pautista);
+    return api.post('/usuarios', pautista);
   },
 
   async remover(sapiensId) {
-    return api.delete(`/pautista/${sapiensId}`);
+    return api.delete(`/usuarios/${sapiensId}`);
   },
 
   async buscarPorId(sapiensId) {
-    return api.get(`/pautista/${sapiensId}`);
+    return api.get(`/usuarios/${sapiensId}`);
   },
 };
 

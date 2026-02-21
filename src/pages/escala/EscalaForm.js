@@ -28,6 +28,7 @@ import escalaService from '../../services/escalaService';
 import { AuthContext } from '../../context/AuthContext';
 
 const unidadesFederativasOptions = [
+  { label: 'TODOS', value: null },
   { label: 'Acre (AC)', value: 'AC' },
   { label: 'Alagoas (AL)', value: 'AL' },
   { label: 'Amapá (AP)', value: 'AP' },
@@ -58,6 +59,7 @@ const unidadesFederativasOptions = [
 ];
 
 const tipoContestacaoOptions = [
+  { label: 'TODOS', value: null },
   { label: 'TIPO 1', value: 'TIPO1' },
   { label: 'TIPO 2', value: 'TIPO2' },
   { label: 'TIPO 3', value: 'TIPO3' },
@@ -68,6 +70,7 @@ const tipoContestacaoOptions = [
 ];
 
 const subnucleoOptions = [
+  { label: 'TODOS', value: null },
   { label: 'ESEAS', value: 'ESEAS' },
   { label: 'EBI', value: 'EBI' },
   { label: 'ERU', value: 'ERU' },
@@ -94,6 +97,7 @@ const EscalaForm = () => {
     tipoContestacao: [],
     subnucleos: [],
     pessoas: [],
+    distribuirParaMim: false,
     distribuicaoAutomaticaSetores: true,
     unidadeDestino: null,
     setorDestino: null,
@@ -303,9 +307,13 @@ const EscalaForm = () => {
 
       setOrgaoJulgadorLoading(true);
       try {
-        const ufs = formData.unidadesFederativas.map(uf => uf.value);
+        const ufs = formData.unidadesFederativas.map(uf => uf.value).filter(v => v !== null);
         const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '', ufs);
-        setOrgaoJulgadorOptions(results);
+        // Adicionar opção TODOS no início
+        setOrgaoJulgadorOptions([
+          { id: null, nome: 'TODOS' },
+          ...results
+        ]);
       } catch (err) {
         console.error('Erro ao buscar órgãos julgadores:', err);
         setOrgaoJulgadorOptions([]);
@@ -337,9 +345,13 @@ const EscalaForm = () => {
         } else if (formData.tipoEscala === 'PAUTISTA') {
           results = await pautistaService.buscar(usuarioSearchTerm);
         } else {
-          results = await apoioService.buscarEquipeParaEscala(usuarioSearchTerm);
+          results = await apoioService.buscar(usuarioSearchTerm);
         }
-        setUsuarioOptions(results);
+        // Adicionar opção TODOS no início
+        setUsuarioOptions([
+          { id: null, nome: 'TODOS', email: '' },
+          ...results
+        ]);
       } catch (err) {
         console.error('Erro ao buscar usuários:', err);
         setUsuarioOptions([]);
@@ -368,9 +380,13 @@ const EscalaForm = () => {
         } else if (formData.tipoEscala === 'PAUTISTA') {
           results = await pautistaService.buscar('');
         } else {
-          results = await apoioService.buscarEquipeParaEscala('');
+          results = await apoioService.buscar('');
         }
-        setUsuarioOptions(results);
+        // Adicionar opção TODOS no início
+        setUsuarioOptions([
+          { id: null, nome: 'TODOS', email: '' },
+          ...results
+        ]);
       } catch (err) {
         console.error('Erro ao carregar usuários:', err);
       } finally {
@@ -410,11 +426,18 @@ const EscalaForm = () => {
     if (!formData.setorOrigem) errors.setorOrigem = 'Campo obrigatório';
     if (!formData.dataInicio) errors.dataInicio = 'Campo obrigatório';
     if (!formData.dataFim) errors.dataFim = 'Campo obrigatório';
+    if (!formData.unidadesFederativas || formData.unidadesFederativas.length === 0) errors.unidadesFederativas = 'Selecione pelo menos uma UF';
+    if (!formData.tipoContestacao || formData.tipoContestacao.length === 0) errors.tipoContestacao = 'Selecione pelo menos um tipo de contestação';
     if (!formData.subnucleos || formData.subnucleos.length === 0) errors.subnucleos = 'Selecione pelo menos um subnúcleo';
+    if (!formData.orgaoJulgadores || formData.orgaoJulgadores.length === 0) errors.orgaoJulgadores = 'Selecione pelo menos um órgão julgador';
     if (!formData.tipoEscala) errors.tipoEscala = 'Campo obrigatório';
     if (!formData.distribuicaoAutomaticaSetores) {
       if (!formData.unidadeDestino) errors.unidadeDestino = 'Campo obrigatório';
       if (!formData.setorDestino) errors.setorDestino = 'Campo obrigatório';
+    }
+    // Validar pessoas se "Distribuir para Mim" estiver desativado
+    if (formData.tipoEscala && !formData.distribuirParaMim && (!formData.pessoas || formData.pessoas.length === 0)) {
+      errors.pessoas = 'Selecione pelo menos uma pessoa ou ative "Distribuir para Mim"';
     }
 
     setFieldErrors(errors);
@@ -428,12 +451,20 @@ const EscalaForm = () => {
     setSubmitting(true);
     
     try {
-      const response = await escalaService.escalar(formData);
+      // Preparar dados para envio
+      const payloadData = { ...formData };
+
+      // Se distribuirParaMim está ativado, enviar pessoas como vazio
+      if (payloadData.distribuirParaMim) {
+        payloadData.pessoas = [];
+      }
+
+      const response = await escalaService.escalar(payloadData);
       
       let tipoLabel;
-      if (formData.tipoEscala === 'AVALIADOR') {
+      if (payloadData.tipoEscala === 'AVALIADOR') {
         tipoLabel = 'avaliadores';
-      } else if (formData.tipoEscala === 'PAUTISTA') {
+      } else if (payloadData.tipoEscala === 'PAUTISTA') {
         tipoLabel = 'pautistas';
       } else {
         tipoLabel = 'apoio';
@@ -474,6 +505,7 @@ const EscalaForm = () => {
             getOptionLabel={(option) => option.nome || ''}
             value={formData.especieTarefa}
             loading={especieTarefaLoading}
+            slotProps={{ paper: { placement: 'bottom-start' } }}
             onChange={(event, newValue) => {
               setFormData({ ...formData, especieTarefa: newValue });
               if (newValue) setFieldErrors(prev => ({ ...prev, especieTarefa: undefined }));
@@ -511,6 +543,7 @@ const EscalaForm = () => {
             getOptionLabel={(option) => `${option.nome}${option.sigla ? ` (${option.sigla})` : ''}`}
             value={formData.unidade}
             loading={unidadeLoading}
+            slotProps={{ paper: { placement: 'bottom-start' } }}
             onChange={(event, newValue) => {
               setFormData({ ...formData, unidade: newValue });
               if (newValue) setFieldErrors(prev => ({ ...prev, unidade: undefined }));
@@ -549,6 +582,7 @@ const EscalaForm = () => {
             value={formData.setorOrigem}
             loading={setorOrigemLoading}
             disabled={!formData.unidade}
+            slotProps={{ paper: { placement: 'bottom-start' } }}
             onChange={(event, newValue) => {
               setFormData({ ...formData, setorOrigem: newValue });
               if (newValue) setFieldErrors(prev => ({ ...prev, setorOrigem: undefined }));
@@ -578,8 +612,7 @@ const EscalaForm = () => {
                     py: 1.5,
                   }}
                 >
-                  <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                  <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.unidadeNome}</span>
+                  <span>{option.nome}</span>
                 </Box>
               );
             }}
@@ -652,6 +685,7 @@ const EscalaForm = () => {
                 getOptionLabel={(option) => `${option.nome}${option.sigla ? ` (${option.sigla})` : ''}`}
                 value={formData.unidadeDestino}
                 loading={unidadeDestinoLoading}
+                slotProps={{ paper: { placement: 'bottom-start' } }}
                 onChange={(event, newValue) => {
                   setFormData({ ...formData, unidadeDestino: newValue });
                   if (newValue) setFieldErrors(prev => ({ ...prev, unidadeDestino: undefined }));
@@ -690,6 +724,7 @@ const EscalaForm = () => {
                 value={formData.setorDestino}
                 loading={setorDestinoLoading}
                 disabled={!formData.unidadeDestino}
+                slotProps={{ paper: { placement: 'bottom-start' } }}
                 onChange={(event, newValue) => {
                   setFormData({ ...formData, setorDestino: newValue });
                   if (newValue) setFieldErrors(prev => ({ ...prev, setorDestino: undefined }));
@@ -719,8 +754,7 @@ const EscalaForm = () => {
                         py: 1.5,
                       }}
                     >
-                      <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                      <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.unidadeNome}</span>
+                      <span>{option.nome}</span>
                     </Box>
                   );
                 }}
@@ -790,16 +824,20 @@ const EscalaForm = () => {
             options={unidadesFederativasOptions}
             getOptionLabel={(option) => option.label}
             value={formData.unidadesFederativas}
-            onChange={(e, newValue) =>
-              setFormData({ ...formData, unidadesFederativas: newValue })
-            }
+            slotProps={{ paper: { placement: 'bottom-start' } }}
+            onChange={(e, newValue) => {
+              setFormData({ ...formData, unidadesFederativas: newValue });
+              if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, unidadesFederativas: undefined }));
+            }}
             filterSelectedOptions
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Unidades Federativas"
+                label="Unidades Federativas *"
                 variant="outlined"
                 placeholder="Selecione as UFs"
+                error={!!fieldErrors.unidadesFederativas}
+                helperText={fieldErrors.unidadesFederativas}
               />
             )}
           />
@@ -811,9 +849,11 @@ const EscalaForm = () => {
             getOptionLabel={(option) => option.nome || ''}
             value={formData.orgaoJulgadores}
             loading={orgaoJulgadorLoading}
+            slotProps={{ paper: { placement: 'bottom-start' } }}
             disabled={formData.unidadesFederativas.length === 0}
             onChange={(event, newValue) => {
               setFormData({ ...formData, orgaoJulgadores: newValue });
+              if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, orgaoJulgadores: undefined }));
             }}
             onInputChange={(event, newInputValue) => {
               setOrgaoJulgadorSearchTerm(newInputValue);
@@ -828,9 +868,11 @@ const EscalaForm = () => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Órgãos Julgadores"
+                label="Órgãos Julgadores *"
                 variant="outlined"
                 placeholder={formData.unidadesFederativas.length === 0 ? "Selecione UFs primeiro" : "Selecione ou digite para filtrar..."}
+                error={!!fieldErrors.orgaoJulgadores}
+                helperText={fieldErrors.orgaoJulgadores}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -850,16 +892,29 @@ const EscalaForm = () => {
             options={tipoContestacaoOptions}
             getOptionLabel={(option) => option.label}
             value={formData.tipoContestacao}
-            onChange={(e, newValue) =>
-              setFormData({ ...formData, tipoContestacao: newValue })
-            }
+            slotProps={{ paper: { placement: 'bottom-start' } }}
+            onChange={(e, newValue) => {
+              // Se TODOS foi selecionado, selecionar todos os tipos de contestação
+              const hasTodos = newValue.some(item => item.value === null);
+              if (hasTodos) {
+                // Remover a opção TODOS e colocar todos os outros tipos
+                const allTypes = tipoContestacaoOptions.filter(option => option.value !== null);
+                setFormData({ ...formData, tipoContestacao: allTypes });
+                setFieldErrors(prev => ({ ...prev, tipoContestacao: undefined }));
+              } else {
+                setFormData({ ...formData, tipoContestacao: newValue });
+                if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, tipoContestacao: undefined }));
+              }
+            }}
             filterSelectedOptions
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Tipo Contestação"
+                label="Tipo Contestação *"
                 variant="outlined"
                 placeholder="Selecione os tipos"
+                error={!!fieldErrors.tipoContestacao}
+                helperText={fieldErrors.tipoContestacao}
               />
             )}
           />
@@ -870,9 +925,19 @@ const EscalaForm = () => {
             options={subnucleoOptions}
             getOptionLabel={(option) => option.label}
             value={formData.subnucleos}
+            slotProps={{ paper: { placement: 'bottom-start' } }}
             onChange={(e, newValue) => {
-              setFormData({ ...formData, subnucleos: newValue });
-              if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, subnucleos: undefined }));
+              // Se TODOS foi selecionado, selecionar todos os subnúcleos
+              const hasTodos = newValue.some(item => item.value === null);
+              if (hasTodos) {
+                // Remover a opção TODOS e colocar todos os outros subnúcleos
+                const allSubnucleos = subnucleoOptions.filter(option => option.value !== null);
+                setFormData({ ...formData, subnucleos: allSubnucleos });
+                setFieldErrors(prev => ({ ...prev, subnucleos: undefined }));
+              } else {
+                setFormData({ ...formData, subnucleos: newValue });
+                if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, subnucleos: undefined }));
+              }
             }}
             filterSelectedOptions
             renderInput={(params) => (
@@ -908,16 +973,58 @@ const EscalaForm = () => {
             ))}
           </TextField>
 
-          {/* Usuários (Avaliadores ou Apoio) - Aparece apenas após selecionar tipo de escala */}
+          {/* Distribuir para Mim - Switch que aparece após selecionar tipo de escala */}
           {formData.tipoEscala && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.distribuirParaMim}
+                    onChange={(e) =>
+                      setFormData({ ...formData, distribuirParaMim: e.target.checked, pessoas: [] })
+                    }
+                    color="primary"
+                  />
+                }
+                label="Distribuir para Mim"
+              />
+              <Tooltip
+                title="Ao ativar esta opção as tarefas serão cadastradas no seu grid do sapiens. Recomendamos essa opção somente para tipo de escala APOIO"
+                arrow
+                placement="right"
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: '#f5f5f5',
+                      color: '#000',
+                      fontSize: '0.875rem',
+                      border: '1px solid #ccc',
+                      '& .MuiTooltip-arrow': {
+                        color: '#f5f5f5',
+                      },
+                    },
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+                  <IconInfoCircle size={20} color="#1976d2" />
+                </Box>
+              </Tooltip>
+            </Box>
+          )}
+
+          {/* Usuários (Avaliadores ou Apoio) - Aparece apenas após selecionar tipo de escala e distribuirParaMim estar desativado */}
+          {formData.tipoEscala && !formData.distribuirParaMim && (
             <Autocomplete
               multiple
               options={usuarioOptions}
               getOptionLabel={(option) => option.nome || ''}
               value={formData.pessoas}
               loading={usuarioLoading}
+              slotProps={{ paper: { placement: 'bottom-start' } }}
               onChange={(event, newValue) => {
                 setFormData({ ...formData, pessoas: newValue });
+                if (newValue.length > 0) setFieldErrors(prev => ({ ...prev, pessoas: undefined }));
               }}
               onInputChange={(event, newInputValue) => {
                 setUsuarioSearchTerm(newInputValue);
@@ -939,8 +1046,7 @@ const EscalaForm = () => {
                       py: 1.5,
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{option.nome}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#666' }}>{option.setor || option.email}</span>
+                    <span>{option.nome}</span>
                   </Box>
                 );
               }}
@@ -956,6 +1062,8 @@ const EscalaForm = () => {
                   }
                   variant="outlined"
                   placeholder="Selecione ou digite para filtrar..."
+                  error={!!fieldErrors.pessoas}
+                  helperText={fieldErrors.pessoas}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (

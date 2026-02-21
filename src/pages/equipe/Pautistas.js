@@ -2,17 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  Avatar,
-  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
   IconButton,
-  Pagination,
-  Stack,
-  Tooltip,
   Button,
-  styled,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,66 +26,32 @@ import {
   FormControlLabel,
   FormGroup,
   MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Tooltip,
 } from '@mui/material';
 import {
   IconTrash,
   IconUserPlus,
   IconAlertTriangle,
+  IconSearch,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
 import pautistaService from '../../services/pautistaService';
+import usuarioService from '../../services/usuarioService';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-// Styled components
-const StyledCard = styled(Card)(({ theme }) => ({
-  minHeight: 300,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease',
-  '&:hover': {
-    boxShadow: theme.shadows[8],
-  },
-}));
-
-const AvatarWrapper = styled(Avatar)(({ theme }) => ({
-  width: 56,
-  height: 56,
-  backgroundColor: theme.palette.grey[200],
-  color: theme.palette.text.primary,
-  fontWeight: 600,
-  fontSize: '1.2rem',
-}));
-
-const StatBox = styled(Box)({
-  textAlign: 'center',
-  flex: 1,
-});
-
-const getInitials = (nome) => {
-  const names = nome.split(' ');
-  if (names.length >= 2) {
-    return `${names[0][0]}${names[names.length - 1][0]}`;
-  }
-  return names[0][0];
-};
-
 // Função para formatar telefone: (XX) XXXXX-XXXX
 const formatarTelefone = (valor) => {
   if (!valor) return '';
-  
-  // Remove tudo que não é número
   const apenas_numeros = valor.replace(/\D/g, '');
-  
-  // Limita a 11 dígitos
   const limitado = apenas_numeros.slice(0, 11);
-  
-  // Aplica a máscara
   if (limitado.length <= 2) {
     return `(${limitado}`;
   } else if (limitado.length <= 7) {
@@ -96,131 +61,13 @@ const formatarTelefone = (valor) => {
   }
 };
 
-const PautistaCard = ({ pautista, onRemover }) => {
-  const handleRemover = () => {
-    onRemover(pautista);
-  };
-
-  return (
-    <StyledCard elevation={9}>
-      <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header com Avatar, Nome e Status */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <AvatarWrapper>
-            {getInitials(pautista.nome)}
-          </AvatarWrapper>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="h6"
-              fontWeight={600}
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {pautista.nome}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {pautista.setor?.nome || ''}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'block',
-              }}
-            >
-              {pautista.email}
-            </Typography>
-          </Box>
-          <Chip
-            label={pautista.disponivel ? 'Disponível' : 'Indisponível'}
-            size="small"
-            sx={{
-              backgroundColor: pautista.disponivel ? 'success.main' : 'grey.400',
-              color: '#fff',
-              fontWeight: 500,
-              alignSelf: 'flex-start',
-            }}
-          />
-        </Box>
-
-        {/* Estatísticas */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-around',
-            py: 2,
-            borderTop: 1,
-            borderBottom: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {pautista.quantidadeAudiencias || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Audiências
-            </Typography>
-          </StatBox>
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {pautista.quantidadePautas || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Pautas
-            </Typography>
-          </StatBox>
-        </Box>
-
-        {/* Ações */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 1,
-            mt: 2,
-            pt: 2,
-            borderTop: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Tooltip title="Remover">
-            <IconButton size="small" color="error" onClick={handleRemover}>
-              <IconTrash size={20} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* Footer */}
-        <Box sx={{ mt: 'auto', pt: 2 }}>
-          <Typography variant="caption" color="textSecondary" display="block">
-            Unidade: {pautista.unidade?.nome || ''}
-          </Typography>
-        </Box>
-      </CardContent>
-    </StyledCard>
-  );
-};
-
 const Pautistas = () => {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalElements, setTotalElements] = useState(0);
   const [pautistas, setPautistas] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [filterNome, setFilterNome] = useState('');
 
   // Estado do Dialog de Cadastro
   const [openDialog, setOpenDialog] = useState(false);
@@ -251,16 +98,16 @@ const Pautistas = () => {
   const carregarPautistas = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await pautistaService.listar(page - 1, 6);
+      const response = await pautistaService.listar(page, rowsPerPage, filterNome);
       setPautistas(response.content || []);
-      setTotalPages(response.totalPages || 1);
+      setTotalElements(response.totalElements || 0);
     } catch (err) {
       console.error('Erro ao carregar pautistas:', err);
       setPautistas([]);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, rowsPerPage, filterNome]);
 
   useEffect(() => {
     carregarPautistas();
@@ -290,8 +137,13 @@ const Pautistas = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  const handlePageChange = (event, value) => {
-    setPage(value);
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleOpenDialog = () => {
@@ -389,6 +241,7 @@ const Pautistas = () => {
         email: email,
         telefone: telefone,
         cargo: cargo,
+        tipo: 'PAUTISTA',
         setores: setoresSelecionados.map(setor => ({
           id: setor.id,
           nome: setor.nome,
@@ -400,12 +253,10 @@ const Pautistas = () => {
         })),
       };
       
-      await pautistaService.cadastrar(payload);
+      await usuarioService.cadastrar(payload);
       setSuccess('Pautista cadastrado com sucesso!');
       carregarPautistas();
-      setTimeout(() => {
-        handleCloseDialog();
-      }, 1500);
+      handleCloseDialog();
     } catch (err) {
       setError(err.message || 'Erro ao cadastrar pautista');
     } finally {
@@ -428,19 +279,22 @@ const Pautistas = () => {
 
     setDeleting(true);
     try {
-      await pautistaService.remover(pautistaParaDeletar.sapiensId);
+      await usuarioService.deletar(pautistaParaDeletar.sapiensId);
       setSnackbar({
         open: true,
         message: `Pautista ${pautistaParaDeletar.nome} removido com sucesso!`,
         severity: 'success',
       });
-      carregarPautistas();
-      handleCloseDeleteDialog();
+      setTimeout(() => {
+        carregarPautistas();
+        handleCloseDeleteDialog();
+      }, 500);
     } catch (err) {
       console.error('Erro ao remover pautista:', err);
+      const mensagemErro = err.message || 'Erro ao remover pautista. Tente novamente.';
       setSnackbar({
         open: true,
-        message: 'Erro ao remover pautista. Tente novamente.',
+        message: mensagemErro,
         severity: 'error',
       });
     } finally {
@@ -467,36 +321,115 @@ const Pautistas = () => {
         </Button>
       </Box>
 
+      {/* Campo de busca por nome */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Buscar por nome..."
+          variant="outlined"
+          size="small"
+          value={filterNome}
+          onChange={(e) => setFilterNome(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ pr: 1, display: 'flex', alignItems: 'center' }}>
+                <IconSearch size={18} color="#999" />
+              </Box>
+            ),
+          }}
+        />
+      </Box>
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
           <CircularProgress />
         </Box>
       ) : pautistas.length > 0 ? (
-        <Grid container spacing={3} alignItems="stretch">
-          {pautistas.map((pautista) => (
-            <Grid size={{ xs: 12, sm: 6 }} key={pautista.sapiensId}>
-              <PautistaCard pautista={pautista} onRemover={handleRemoverPautista} />
-            </Grid>
-          ))}
-        </Grid>
+        <TableContainer component={Paper} sx={{ mt: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Nome
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Email
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Cargo
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Setores
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Ações
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {pautistas.map((pautista) => (
+                <TableRow key={pautista.sapiensId} hover>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={500}>
+                      {pautista.nome}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {pautista.email}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {pautista.cargo || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {pautista.setores && pautista.setores.length > 0
+                        ? pautista.setores.map(s => s.nome).join(', ')
+                        : '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Remover">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleRemoverPautista(pautista)}
+                      >
+                        <IconTrash size={20} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={totalElements}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </TableContainer>
       ) : (
         <Box sx={{ textAlign: 'center', py: 5 }}>
           <Typography color="textSecondary">Nenhum pautista cadastrado</Typography>
         </Box>
-      )}
-
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <Stack alignItems="center" sx={{ mt: 4 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Stack>
       )}
 
       {/* Dialog de Cadastro */}
@@ -630,18 +563,18 @@ const Pautistas = () => {
                   helperText="Digite o telefone do pautista"
                 />
 
-                <TextField
-                  select
-                  fullWidth
-                  required
-                  label="Cargo"
-                  variant="outlined"
-                  value={cargo}
-                  onChange={(e) => setCargo(e.target.value)}
-                >
-                  <MenuItem value="PREPOSTO">PREPOSTO</MenuItem>
-                  <MenuItem value="PROCURADOR">PROCURADOR</MenuItem>
-                </TextField>
+                <FormControl fullWidth required>
+                  <InputLabel>Cargo</InputLabel>
+                  <Select
+                    value={cargo}
+                    onChange={(e) => setCargo(e.target.value)}
+                    label="Cargo"
+                  >
+                    <MenuItem value="PROCURADOR">Procurador</MenuItem>
+                    <MenuItem value="PREPOSTO">Preposto</MenuItem>
+                    <MenuItem value="OUTROS">Outros</MenuItem>
+                  </Select>
+                </FormControl>
               </>
             )}
 

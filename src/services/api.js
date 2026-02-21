@@ -35,6 +35,13 @@ const api = {
         throw new Error(error.message || 'Erro ao fazer login');
       }
 
+      // Se é um DELETE, não fazer redirect automático - deixar o componente tratar
+      if (options.method === 'DELETE') {
+        const errorBody = await response.json().catch(() => ({}));
+        const errorMessage = errorBody.message || 'Erro ao deletar recurso. Verifique suas permissões.';
+        throw new Error(errorMessage);
+      }
+
       // Se já é uma tentativa de retry ou endpoint de refresh, fazer logout
       if (isRetry || endpoint.includes('/auth/refresh')) {
         console.log('[API] Token expirado e refresh falhou. Fazendo logout...');

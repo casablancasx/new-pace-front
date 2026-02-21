@@ -60,6 +60,31 @@ const usuarioService = {
   async atualizarStatusConta(id, ativo) {
     return api.patch(`/usuarios/${id}/status`, { isContaAtiva: ativo });
   },
+
+  /**
+   * Cadastra um novo usuário (AVALIADOR, PAUTISTA, APOIO)
+   * @param {Object} data - Dados do usuário
+   * @param {number} data.sapiensId - ID do Sapiens
+   * @param {string} data.nome - Nome do usuário
+   * @param {string} data.email - Email do usuário
+   * @param {string} data.telefone - Telefone do usuário
+   * @param {string} data.cargo - Cargo (PROCURADOR, PREPOSTO, OUTROS)
+   * @param {string} data.tipo - Tipo de usuário (AVALIADOR, PAUTISTA, APOIO)
+   * @param {Array} data.setores - Lista de setores
+   * @returns {Promise}
+   */
+  async cadastrar(data) {
+    return api.post('/usuarios', data);
+  },
+
+  /**
+   * Deleta um usuário
+   * @param {number} sapiensId - ID Sapiens do usuário
+   * @returns {Promise}
+   */
+  async deletar(sapiensId) {
+    return api.delete(`/usuarios/${sapiensId}`);
+  },
 };
 
 export default usuarioService;

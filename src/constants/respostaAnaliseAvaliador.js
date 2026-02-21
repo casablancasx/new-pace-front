@@ -82,10 +82,10 @@ const normalizarResposta = (resposta) => {
 };
 
 /**
- * Array de opções para select/dropdown (excluindo ANALISE_PENDENTE)
+ * Array de opções para select/dropdown (excluindo ANALISE_PENDENTE e NAO_ESCALADA)
  */
 export const RESPOSTA_ANALISE_OPTIONS = Object.values(RESPOSTA_ANALISE_AVALIADOR)
-  .filter((item) => item.value !== 'ANALISE_PENDENTE')
+  .filter((item) => item.value !== 'ANALISE_PENDENTE' && item.value !== 'NAO_ESCALADA')
   .map((item) => ({
     value: item.value,
     label: item.label,

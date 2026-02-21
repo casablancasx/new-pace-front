@@ -1,8 +1,16 @@
 import api from './api';
 
 const avaliadorService = {
-  async listar(page = 0, size = 10) {
-    const response = await api.get(`/avaliador?page=${page}&size=${size}`);
+  async listar(page = 0, size = 10, nome = '') {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    
+    if (nome && nome.trim()) {
+      params.append('nome', nome.trim());
+    }
+    
+    const response = await api.get(`/usuarios/avaliadores?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo frontend
     // Novo formato da API: { content: [...], page: { size, number, totalElements, totalPages } }
@@ -40,13 +48,12 @@ const avaliadorService = {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
-    params.append('sort', 'nome');
     
     if (nome && nome.trim()) {
       params.append('nome', nome.trim());
     }
     
-    const response = await api.get(`/avaliador?${params.toString()}`);
+    const response = await api.get(`/usuarios/avaliadores?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo Autocomplete
     // Suporta novo formato da API onde setor é string
@@ -59,15 +66,15 @@ const avaliadorService = {
   },
 
   async cadastrar(avaliador) {
-    return api.post('/avaliador', avaliador);
+    return api.post('/usuarios', avaliador);
   },
 
   async remover(sapiensId) {
-    return api.delete(`/avaliador/${sapiensId}`);
+    return api.delete(`/usuarios/${sapiensId}`);
   },
 
   async buscarPorId(sapiensId) {
-    return api.get(`/avaliador/${sapiensId}`);
+    return api.get(`/usuarios/${sapiensId}`);
   },
 };
 

@@ -2,14 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  Avatar,
-  Chip,
   IconButton,
   LinearProgress,
-  Pagination,
   Stack,
   Tooltip,
   Button,
@@ -27,47 +21,36 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   IconTrash,
   IconUserPlus,
   IconAlertTriangle,
+  IconSearch,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
 import avaliadorService from '../../services/avaliadorService';
+import usuarioService from '../../services/usuarioService';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-// Styled components
-const StyledCard = styled(Card)(({ theme }) => ({
-  minHeight: 380,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease',
-  '&:hover': {
-    boxShadow: theme.shadows[8],
-  },
-}));
-
-const AvatarWrapper = styled(Avatar)(({ theme }) => ({
-  width: 56,
-  height: 56,
-  backgroundColor: theme.palette.grey[200],
-  color: theme.palette.text.primary,
-  fontWeight: 600,
-  fontSize: '1.2rem',
-}));
-
-const StatBox = styled(Box)({
-  textAlign: 'center',
-  flex: 1,
-});
-
+// Styled component for progress bar
 const QualidadeProgress = styled(LinearProgress)(({ theme }) => ({
   height: 8,
   borderRadius: 4,
@@ -76,14 +59,6 @@ const QualidadeProgress = styled(LinearProgress)(({ theme }) => ({
     borderRadius: 4,
   },
 }));
-
-const getInitials = (nome) => {
-  const names = nome.split(' ');
-  if (names.length >= 2) {
-    return `${names[0][0]}${names[names.length - 1][0]}`;
-  }
-  return names[0][0];
-};
 
 // Função para formatar telefone: (XX) XXXXX-XXXX
 const formatarTelefone = (valor) => {
@@ -105,161 +80,13 @@ const formatarTelefone = (valor) => {
   }
 };
 
-const AvaliadorCard = ({ avaliador, onRemover }) => {
-  const handleRemover = () => {
-    onRemover(avaliador);
-  };
-
-  // Calcular percentual de audiências analisadas
-  const percentualAnalisadas = avaliador.quantidadeTotalAudiencias > 0
-    ? Math.round((avaliador.quantidadeAudienciasAvaliadas / avaliador.quantidadeTotalAudiencias) * 100)
-    : 0;
-
-  return (
-    <StyledCard elevation={9}>
-      <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header com Avatar, Nome e Status */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <AvatarWrapper>
-            {getInitials(avaliador.nome)}
-          </AvatarWrapper>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="h6"
-              fontWeight={600}
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {avaliador.nome}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {avaliador.setor?.nome || ''}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'block',
-              }}
-            >
-              {avaliador.email}
-            </Typography>
-          </Box>
-          <Chip
-            label={avaliador.disponivel ? 'Disponível' : 'Indisponível'}
-            size="small"
-            sx={{
-              backgroundColor: avaliador.disponivel ? 'success.main' : 'grey.400',
-              color: '#fff',
-              fontWeight: 500,
-              alignSelf: 'flex-start',
-            }}
-          />
-        </Box>
-
-        {/* Estatísticas */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-around',
-            py: 2,
-            borderTop: 1,
-            borderBottom: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {avaliador.quantidadeTotalAudiencias || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Audiências
-            </Typography>
-          </StatBox>
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {avaliador.quantidadePautas || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Pautas
-            </Typography>
-          </StatBox>
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {avaliador.quantidadeAudienciasAvaliadas || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Avaliadas
-            </Typography>
-          </StatBox>
-        </Box>
-
-        {/* Barra de Qualidade */}
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2" color="textSecondary">
-              Audiências Analisadas
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {percentualAnalisadas}%
-            </Typography>
-          </Box>
-          <QualidadeProgress
-            variant="determinate"
-            value={percentualAnalisadas}
-            color={percentualAnalisadas >= 70 ? 'success' : percentualAnalisadas >= 40 ? 'warning' : 'error'}
-          />
-        </Box>
-
-        {/* Ações */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 1,
-            mt: 2,
-            pt: 2,
-            borderTop: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Tooltip title="Remover">
-            <IconButton size="small" color="error" onClick={handleRemover}>
-              <IconTrash size={20} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* Footer */}
-        <Box sx={{ mt: 'auto', pt: 2 }}>
-          <Typography variant="caption" color="textSecondary" display="block">
-            Unidade: {avaliador.unidade?.nome || ''}
-          </Typography>
-        </Box>
-      </CardContent>
-    </StyledCard>
-  );
-};
-
 const Avaliadores = () => {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [avaliadores, setAvaliadores] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filterNome, setFilterNome] = useState('');
 
   // Estado do Dialog de Cadastro
   const [openDialog, setOpenDialog] = useState(false);
@@ -270,6 +97,7 @@ const Avaliadores = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [cargo, setCargo] = useState('');
   const [lotacoesDisponiveis, setLotacoesDisponiveis] = useState([]);
   const [setoresSelecionados, setSetoresSelecionados] = useState([]);
   const [loadingLotacoes, setLoadingLotacoes] = useState(false);
@@ -289,16 +117,17 @@ const Avaliadores = () => {
   const carregarAvaliadores = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await avaliadorService.listar(page - 1, 6);
+      const response = await avaliadorService.listar(page, rowsPerPage, filterNome);
       setAvaliadores(response.content || []);
-      setTotalPages(response.totalPages || 1);
+      setTotalElements(response.totalElements || 0);
     } catch (err) {
       console.error('Erro ao carregar avaliadores:', err);
       setAvaliadores([]);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, rowsPerPage, filterNome]);
 
   useEffect(() => {
     carregarAvaliadores();
@@ -328,8 +157,13 @@ const Avaliadores = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  const handlePageChange = (event, value) => {
-    setPage(value);
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleOpenDialog = () => {
@@ -340,6 +174,7 @@ const Avaliadores = () => {
     setNome('');
     setEmail('');
     setTelefone('');
+    setCargo('');
     setLotacoesDisponiveis([]);
     setSetoresSelecionados([]);
     setError('');
@@ -354,6 +189,7 @@ const Avaliadores = () => {
     setNome('');
     setEmail('');
     setTelefone('');
+    setCargo('');
     setLotacoesDisponiveis([]);
     setSetoresSelecionados([]);
     setError('');
@@ -408,6 +244,11 @@ const Avaliadores = () => {
       return;
     }
 
+    if (!cargo) {
+      setError('Selecione um cargo');
+      return;
+    }
+
     setSaving(true);
     setError('');
     setSuccess('');
@@ -419,6 +260,8 @@ const Avaliadores = () => {
         nome: nome,
         email: email,
         telefone: telefone,
+        cargo: cargo,
+        tipo: 'AVALIADOR',
         setores: setoresSelecionados.map(setor => ({
           id: setor.id,
           nome: setor.nome,
@@ -430,12 +273,10 @@ const Avaliadores = () => {
         })),
       };
       
-      await avaliadorService.cadastrar(payload);
+      await usuarioService.cadastrar(payload);
       setSuccess('Avaliador cadastrado com sucesso!');
       carregarAvaliadores();
-      setTimeout(() => {
-        handleCloseDialog();
-      }, 1500);
+      handleCloseDialog();
     } catch (err) {
       setError(err.message || 'Erro ao cadastrar avaliador');
     } finally {
@@ -458,19 +299,22 @@ const Avaliadores = () => {
 
     setDeleting(true);
     try {
-      await avaliadorService.remover(avaliadorParaDeletar.sapiensId);
+      await usuarioService.deletar(avaliadorParaDeletar.sapiensId);
       setSnackbar({
         open: true,
         message: `Avaliador ${avaliadorParaDeletar.nome} removido com sucesso!`,
         severity: 'success',
       });
-      carregarAvaliadores();
-      handleCloseDeleteDialog();
+      setTimeout(() => {
+        carregarAvaliadores();
+        handleCloseDeleteDialog();
+      }, 500);
     } catch (err) {
       console.error('Erro ao remover avaliador:', err);
+      const mensagemErro = err.message || 'Erro ao remover avaliador. Tente novamente.';
       setSnackbar({
         open: true,
-        message: 'Erro ao remover avaliador. Tente novamente.',
+        message: mensagemErro,
         severity: 'error',
       });
     } finally {
@@ -497,18 +341,135 @@ const Avaliadores = () => {
         </Button>
       </Box>
 
+      {/* Campo de busca por nome */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Buscar avaliador por nome..."
+          variant="outlined"
+          size="small"
+          value={filterNome}
+          onChange={(e) => setFilterNome(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ pr: 1, display: 'flex', alignItems: 'center' }}>
+                <IconSearch size={18} color="#999" />
+              </Box>
+            ),
+          }}
+        />
+      </Box>
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
           <CircularProgress />
         </Box>
       ) : avaliadores.length > 0 ? (
-        <Grid container spacing={3} alignItems="stretch">
-          {avaliadores.map((avaliador) => (
-            <Grid size={{ xs: 12, sm: 6 }} key={avaliador.sapiensId}>
-              <AvaliadorCard avaliador={avaliador} onRemover={handleRemoverAvaliador} />
-            </Grid>
-          ))}
-        </Grid>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Nome
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Email
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Audiências
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Pautas
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Avaliadas
+                  </Typography>
+                </TableCell>
+                <TableCell align="center" sx={{ width: '25%' }}>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Progresso
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Ações
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {avaliadores.map((avaliador) => {
+                const percentualAnalisadas = avaliador.quantidadeTotalAudiencias > 0
+                  ? Math.round((avaliador.quantidadeAudienciasAvaliadas / avaliador.quantidadeTotalAudiencias) * 100)
+                  : 0;
+                
+                return (
+                  <TableRow key={avaliador.sapiensId} hover>
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight={500}>
+                        {avaliador.nome}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {avaliador.email}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {avaliador.quantidadeTotalAudiencias || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {avaliador.quantidadePautas || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {avaliador.quantidadeAudienciasAvaliadas || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <QualidadeProgress
+                            variant="determinate"
+                            value={percentualAnalisadas}
+                            color={percentualAnalisadas >= 70 ? 'success' : percentualAnalisadas >= 40 ? 'warning' : 'error'}
+                          />
+                        </Box>
+                        <Typography variant="caption" sx={{ minWidth: 35 }}>
+                          {percentualAnalisadas}%
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Remover">
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => handleRemoverAvaliador(avaliador)}
+                        >
+                          <IconTrash size={18} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       ) : (
         <Box sx={{ textAlign: 'center', py: 5 }}>
           <Typography color="textSecondary">Nenhum avaliador cadastrado</Typography>
@@ -516,17 +477,16 @@ const Avaliadores = () => {
       )}
 
       {/* Paginação */}
-      {totalPages > 1 && (
-        <Stack alignItems="center" sx={{ mt: 4 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Stack>
+      {avaliadores.length > 0 && (
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalElements}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       )}
 
       {/* Dialog de Cadastro */}
@@ -659,6 +619,19 @@ const Avaliadores = () => {
                   onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
                   helperText="Digite o telefone do avaliador"
                 />
+
+                <FormControl fullWidth required>
+                  <InputLabel>Cargo</InputLabel>
+                  <Select
+                    value={cargo}
+                    onChange={(e) => setCargo(e.target.value)}
+                    label="Cargo"
+                  >
+                    <MenuItem value="PROCURADOR">Procurador</MenuItem>
+                    <MenuItem value="PREPOSTO">Preposto</MenuItem>
+                    <MenuItem value="OUTROS">Outros</MenuItem>
+                  </Select>
+                </FormControl>
               </>
             )}
 
@@ -723,7 +696,7 @@ const Avaliadores = () => {
             onClick={handleSalvar}
             variant="contained"
             color="primary"
-            disabled={!selectedUser || setoresSelecionados.length === 0 || saving}
+            disabled={!selectedUser || setoresSelecionados.length === 0 || !cargo || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
           </Button>

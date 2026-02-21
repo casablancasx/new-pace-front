@@ -2,17 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  Avatar,
-  Chip,
   IconButton,
-  Pagination,
   Stack,
   Tooltip,
   Button,
-  styled,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,54 +19,34 @@ import {
   FormControlLabel,
   FormGroup,
   Autocomplete,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   IconTrash,
   IconUserPlus,
   IconAlertTriangle,
+  IconSearch,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
 import apoioService from '../../services/apoioService';
+import usuarioService from '../../services/usuarioService';
 
 // Transição animada para o Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
-
-// Styled components
-const StyledCard = styled(Card)(({ theme }) => ({
-  minHeight: 300,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'box-shadow 0.3s ease',
-  '&:hover': {
-    boxShadow: theme.shadows[8],
-  },
-}));
-
-const AvatarWrapper = styled(Avatar)(({ theme }) => ({
-  width: 56,
-  height: 56,
-  backgroundColor: theme.palette.grey[200],
-  color: theme.palette.text.primary,
-  fontWeight: 600,
-  fontSize: '1.2rem',
-}));
-
-const StatBox = styled(Box)({
-  textAlign: 'center',
-  flex: 1,
-});
-
-const getInitials = (nome) => {
-  const names = nome.split(' ');
-  if (names.length >= 2) {
-    return `${names[0][0]}${names[names.length - 1][0]}`;
-  }
-  return names[0][0];
-};
 
 // Função para formatar telefone: (XX) XXXXX-XXXX
 const formatarTelefone = (valor) => {
@@ -89,124 +62,13 @@ const formatarTelefone = (valor) => {
   }
 };
 
-const ApoioCard = ({ apoio, onRemover }) => {
-  const handleRemover = () => {
-    onRemover(apoio);
-  };
-
-  return (
-    <StyledCard elevation={9}>
-      <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header com Avatar, Nome e Status */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <AvatarWrapper>
-            {getInitials(apoio.nome)}
-          </AvatarWrapper>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="h6"
-              fontWeight={600}
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {apoio.nome}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {apoio.setores?.map(s => s.nome).join(', ') || ''}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="textSecondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'block',
-              }}
-            >
-              {apoio.email}
-            </Typography>
-          </Box>
-          <Chip
-            label={apoio.disponivel ? 'Disponível' : 'Indisponível'}
-            size="small"
-            sx={{
-              backgroundColor: apoio.disponivel ? 'success.main' : 'grey.400',
-              color: '#fff',
-              fontWeight: 500,
-              alignSelf: 'flex-start',
-            }}
-          />
-        </Box>
-
-        {/* Estatísticas */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-around',
-            py: 2,
-            borderTop: 1,
-            borderBottom: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {apoio.quantidadeAudiencias || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Audiências
-            </Typography>
-          </StatBox>
-          <StatBox>
-            <Typography variant="h5" fontWeight={600}>
-              {apoio.quantidadePautas || 0}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Pautas
-            </Typography>
-          </StatBox>
-        </Box>
-
-        {/* Ações */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 1,
-            mt: 2,
-            pt: 2,
-            borderTop: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Tooltip title="Remover">
-            <IconButton size="small" color="error" onClick={handleRemover}>
-              <IconTrash size={20} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </CardContent>
-    </StyledCard>
-  );
-};
-
 const Apoio = () => {
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalElements, setTotalElements] = useState(0);
   const [apoios, setApoios] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [filterNome, setFilterNome] = useState('');
 
   // Estado do Dialog de Cadastro
   const [openDialog, setOpenDialog] = useState(false);
@@ -217,6 +79,7 @@ const Apoio = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [cargo, setCargo] = useState('');
   const [lotacoesDisponiveis, setLotacoesDisponiveis] = useState([]);
   const [setoresSelecionados, setSetoresSelecionados] = useState([]);
   const [loadingLotacoes, setLoadingLotacoes] = useState(false);
@@ -236,16 +99,16 @@ const Apoio = () => {
   const carregarApoios = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await apoioService.listar(page - 1, 6);
+      const response = await apoioService.listar(page, rowsPerPage, filterNome);
       setApoios(response.content || []);
-      setTotalPages(response.totalPages || 1);
+      setTotalElements(response.totalElements || 0);
     } catch (err) {
       console.error('Erro ao carregar usuários de apoio:', err);
       setApoios([]);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, rowsPerPage, filterNome]);
 
   useEffect(() => {
     carregarApoios();
@@ -275,8 +138,13 @@ const Apoio = () => {
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  const handlePageChange = (event, value) => {
-    setPage(value);
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleOpenDialog = () => {
@@ -287,6 +155,7 @@ const Apoio = () => {
     setNome('');
     setEmail('');
     setTelefone('');
+    setCargo('');
     setLotacoesDisponiveis([]);
     setSetoresSelecionados([]);
     setError('');
@@ -301,6 +170,7 @@ const Apoio = () => {
     setNome('');
     setEmail('');
     setTelefone('');
+    setCargo('');
     setLotacoesDisponiveis([]);
     setSetoresSelecionados([]);
     setError('');
@@ -353,6 +223,11 @@ const Apoio = () => {
       return;
     }
 
+    if (!cargo) {
+      setError('Selecione um cargo');
+      return;
+    }
+
     setSaving(true);
     setError('');
     setSuccess('');
@@ -363,6 +238,8 @@ const Apoio = () => {
         nome: nome,
         email: email,
         telefone: telefone,
+        cargo: cargo,
+        tipo: 'APOIO',
         setores: setoresSelecionados.map(setor => ({
           id: setor.id,
           nome: setor.nome,
@@ -374,12 +251,10 @@ const Apoio = () => {
         })),
       };
 
-      await apoioService.cadastrar(payload);
+      await usuarioService.cadastrar(payload);
       setSuccess('Usuário de apoio cadastrado com sucesso!');
       carregarApoios();
-      setTimeout(() => {
-        handleCloseDialog();
-      }, 1500);
+      handleCloseDialog();
     } catch (err) {
       setError(err.message || 'Erro ao cadastrar usuário de apoio');
     } finally {
@@ -402,19 +277,22 @@ const Apoio = () => {
 
     setDeleting(true);
     try {
-      await apoioService.remover(apoioParaDeletar.id);
+      await usuarioService.deletar(apoioParaDeletar.id);
       setSnackbar({
         open: true,
         message: `Usuário de apoio ${apoioParaDeletar.nome} removido com sucesso!`,
         severity: 'success',
       });
-      carregarApoios();
-      handleCloseDeleteDialog();
+      setTimeout(() => {
+        carregarApoios();
+        handleCloseDeleteDialog();
+      }, 500);
     } catch (err) {
       console.error('Erro ao remover usuário de apoio:', err);
+      const mensagemErro = err.message || 'Erro ao remover usuário de apoio. Tente novamente.';
       setSnackbar({
         open: true,
-        message: 'Erro ao remover usuário de apoio. Tente novamente.',
+        message: mensagemErro,
         severity: 'error',
       });
     } finally {
@@ -441,36 +319,123 @@ const Apoio = () => {
         </Button>
       </Box>
 
+      {/* Campo de busca por nome */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          placeholder="Buscar por nome..."
+          variant="outlined"
+          size="small"
+          value={filterNome}
+          onChange={(e) => setFilterNome(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ pr: 1, display: 'flex', alignItems: 'center' }}>
+                <IconSearch size={18} color="#999" />
+              </Box>
+            ),
+          }}
+        />
+      </Box>
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
           <CircularProgress />
         </Box>
       ) : apoios.length > 0 ? (
-        <Grid container spacing={3} alignItems="stretch">
-          {apoios.map((apoio) => (
-            <Grid size={{ xs: 12, sm: 6 }} key={apoio.id}>
-              <ApoioCard apoio={apoio} onRemover={handleRemoverApoio} />
-            </Grid>
-          ))}
-        </Grid>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Nome
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Email
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Telefone
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Cargo
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Setores
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Ações
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {apoios.map((apoio) => (
+                <TableRow key={apoio.id} hover>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={500}>
+                      {apoio.nome}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {apoio.email}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {apoio.telefone}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {apoio.cargo}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {apoio.setores?.map(s => s.nome).join(', ') || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Remover">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleRemoverApoio(apoio)}
+                      >
+                        <IconTrash size={20} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={totalElements}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </TableContainer>
       ) : (
         <Box sx={{ textAlign: 'center', py: 5 }}>
           <Typography color="textSecondary">Nenhum usuário de apoio cadastrado</Typography>
         </Box>
-      )}
-
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <Stack alignItems="center" sx={{ mt: 4 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Stack>
       )}
 
       {/* Dialog de Cadastro */}
@@ -605,6 +570,25 @@ const Apoio = () => {
               </>
             )}
 
+            {/* Campo de Cargo */}
+            {selectedUser && (
+              <FormControl fullWidth>
+                <InputLabel id="cargo-label">Cargo *</InputLabel>
+                <Select
+                  labelId="cargo-label"
+                  id="cargo"
+                  value={cargo}
+                  label="Cargo *"
+                  onChange={(e) => setCargo(e.target.value)}
+                >
+                  <MenuItem value="">Selecione um cargo</MenuItem>
+                  <MenuItem value="PROCURADOR">Procurador</MenuItem>
+                  <MenuItem value="PREPOSTO">Preposto</MenuItem>
+                  <MenuItem value="OUTROS">Outros</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
             {/* Seção de Setores/Lotações */}
             {selectedUser && (
               <Box>
@@ -666,7 +650,7 @@ const Apoio = () => {
             onClick={handleSalvar}
             variant="contained"
             color="primary"
-            disabled={!selectedUser || setoresSelecionados.length === 0 || saving}
+            disabled={!selectedUser || setoresSelecionados.length === 0 || !cargo || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
           </Button>

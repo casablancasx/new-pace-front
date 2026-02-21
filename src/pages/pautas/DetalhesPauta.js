@@ -110,9 +110,19 @@ const DetalhesPauta = () => {
 
   // Handlers do popup
   const handleRowClick = (audiencia) => {
+    // Não permitir avaliar audiências com análise NAO_ESCALADA
+    const analiseInfo = getRespostaAnaliseInfo(audiencia.analiseAvaliador);
+    if (analiseInfo?.value === 'NAO_ESCALADA') {
+      setSnackbar({
+        open: true,
+        message: 'Não é permitido avaliar audiências com análise "Não Escalada". Escale a audiência primeiro.',
+        severity: 'warning',
+      });
+      return;
+    }
+
     setSelectedAudiencia(audiencia);
     // Normalizar analiseAvaliador: API retorna descrição (ex: "Não Escalada"), select usa enum (ex: "NAO_ESCALADA")
-    const analiseInfo = getRespostaAnaliseInfo(audiencia.analiseAvaliador);
     const analiseValue = analiseInfo?.value || '';
     // Não preencher se for ANALISE_PENDENTE (o avaliador precisa escolher)
     setRespostaAnalise(analiseValue === 'ANALISE_PENDENTE' ? '' : analiseValue);
@@ -136,9 +146,19 @@ const DetalhesPauta = () => {
   const handleSalvar = async () => {
     if (!selectedAudiencia || !respostaAnalise) return;
 
+    // Validação adicional: não permitir enviar NAO_ESCALADA como resposta
+    if (respostaAnalise === 'NAO_ESCALADA') {
+      setSnackbar({
+        open: true,
+        message: 'Não é permitido enviar "Não Escalada" como resposta de análise.',
+        severity: 'warning',
+      });
+      return;
+    }
+
     setSalvando(true);
     try {
-      const audienciaAtualizada = await audienciaService.analisarAudiencia(
+      const response = await audienciaService.analisarAudiencia(
         selectedAudiencia.audienciaId,
         respostaAnalise,
         subnucleo,
@@ -147,17 +167,24 @@ const DetalhesPauta = () => {
         observacao || ''
       );
 
-      // Atualizar a audiência na lista local
+      // Garantir que a resposta é um objeto com os dados atualizados
+      const audienciaAtualizada = response?.data || response;
+
+      if (!audienciaAtualizada) {
+        throw new Error('Resposta vazia do servidor');
+      }
+
+      // Atualizar a audiência na lista local com os dados da resposta
       setAudiencias((prev) =>
         prev.map((a) =>
           a.audienciaId === selectedAudiencia.audienciaId
             ? { 
                 ...a, 
-                analiseAvaliador: audienciaAtualizada.analiseAvaliador, 
-                subnucleo: audienciaAtualizada.subnucleo,
-                tipoContestacao: audienciaAtualizada.tipoContestacao,
-                classeJudicial: audienciaAtualizada.classeJudicial,
-                observacao: audienciaAtualizada.observacao 
+                analiseAvaliador: audienciaAtualizada.analiseAvaliador || respostaAnalise, 
+                subnucleo: audienciaAtualizada.subnucleo || subnucleo,
+                tipoContestacao: audienciaAtualizada.tipoContestacao || tipoContestacao,
+                classeJudicial: audienciaAtualizada.classeJudicial || classeJudicial,
+                observacao: audienciaAtualizada.observacao || observacao || ''
               }
             : a
         )
@@ -329,11 +356,12 @@ const DetalhesPauta = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Pautista
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="subtitle2" fontWeight={600}>
+                    PautistagetRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 'not-allowed' : 'pointer',
+                      opacity: getRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 0.6 : 1,
+                      backgroundColor: audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
+                      borderLeft: audiencia.novaAudiencia ? '4px solid #1976d2' : 'none',
+                      '&:hover': {
+                        backgroundColor: getRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 'inherit' : (audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.15)' : 'action.hover')
                     Avaliador
                   </Typography>
                 </TableCell>
