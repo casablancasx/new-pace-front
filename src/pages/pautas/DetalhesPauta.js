@@ -356,13 +356,7 @@ const DetalhesPauta = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    PautistagetRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 'not-allowed' : 'pointer',
-                      opacity: getRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 0.6 : 1,
-                      backgroundColor: audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.08)' : 'inherit',
-                      borderLeft: audiencia.novaAudiencia ? '4px solid #1976d2' : 'none',
-                      '&:hover': {
-                        backgroundColor: getRespostaAnaliseInfo(audiencia.analiseAvaliador)?.value === 'NAO_ESCALADA' ? 'inherit' : (audiencia.novaAudiencia ? 'rgba(25, 118, 210, 0.15)' : 'action.hover')
-                    Avaliador
+                    Pautista Avaliador
                   </Typography>
                 </TableCell>
               </TableRow>

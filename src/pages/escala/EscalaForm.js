@@ -415,6 +415,7 @@ const EscalaForm = () => {
 
   const handleCloseDialog = () => {
     setDialog({ open: false, loading: false, message: '', success: false });
+    setFieldErrors({}); // Limpar erros ao fechar qualquer dialog
   };
 
   const handleSubmit = async (e) => {
