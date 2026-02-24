@@ -32,6 +32,10 @@ const relatorioService = {
       params.append('classeJudicial', filtros.classeJudicial);
     }
 
+    if (filtros.tipoEscala) {
+      params.append('tipoEscala', filtros.tipoEscala);
+    }
+
     // Adiciona o parâmetro view apenas para endpoints que suportam
     if (includeView && filtros.view) {
       params.append('view', filtros.view);
@@ -168,6 +172,9 @@ const relatorioService = {
     }
     if (filtros.classeJudicial) {
       params.append('classeJudicial', filtros.classeJudicial);
+    }
+    if (filtros.tipoEscala) {
+      params.append('tipoEscala', filtros.tipoEscala);
     }
 
     try {

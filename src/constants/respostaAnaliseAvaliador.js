@@ -154,6 +154,15 @@ export const VIEW_RELATORIO_OPTIONS = [
 ];
 
 /**
+ * Opções de Tipo de Escala
+ */
+export const TIPO_ESCALA_OPTIONS = [
+  { value: 'AVALIADOR', label: 'Avaliador' },
+  { value: 'PAUTISTA', label: 'Pautista' },
+  { value: 'APOIO', label: 'Apoio' },
+];
+
+/**
  * Função para obter a cor e descrição de uma resposta
  * Aceita tanto enum value quanto descrição do backend
  * @param {string} resposta - Valor do enum ou descrição (ex: 'COMPARECER' ou 'Comparecer')

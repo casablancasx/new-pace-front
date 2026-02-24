@@ -24,7 +24,7 @@ import PageContainer from 'src/components/container/PageContainer';
 import relatorioService from '../../services/relatorioService';
 import usuarioService from '../../services/usuarioService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
-import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, VIEW_RELATORIO_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
+import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, VIEW_RELATORIO_OPTIONS, TIPO_ESCALA_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
 
 // Função helper para obter colunas dinâmicas baseado no tipo de view
 const getColumnasRelatorio = (viewType) => {
@@ -556,7 +556,8 @@ const Relatorio = () => {
     tipoContestacao: '',
     subnucleo: '',
     classeJudicial: '',
-    viewRelatorio: 'ESCALA',
+    viewRelatorio: '',
+    tipoEscala: '',
   });
 
   // Estados para busca de usuário
@@ -662,7 +663,13 @@ const Relatorio = () => {
   }, [formData.viewRelatorio]);
 
   const handleBuscar = async (newPage = 0) => {
-    if (!formData.dataInicio || !formData.dataFim) {
+    if (!formData.dataInicio || !formData.dataFim || !formData.viewRelatorio) {
+      return;
+    }
+
+    // Validação: tipoEscala é obrigatório quando viewRelatorio é ESCALA
+    if (formData.viewRelatorio === 'ESCALA' && !formData.tipoEscala) {
+      alert('Selecione um tipo de escala para continuar.');
       return;
     }
 
@@ -679,7 +686,8 @@ const Relatorio = () => {
         tipoContestacao: formData.tipoContestacao || null,
         subnucleo: formData.subnucleo || null,
         classeJudicial: formData.classeJudicial || null,
-        view: formData.viewRelatorio || 'ESCALA',
+        tipoEscala: formData.tipoEscala || null,
+        view: formData.viewRelatorio,
       };
 
       const results = await Promise.allSettled([
@@ -770,10 +778,11 @@ const Relatorio = () => {
         tipoContestacao: formData.tipoContestacao || null,
         subnucleo: formData.subnucleo || null,
         classeJudicial: formData.classeJudicial || null,
-        view: formData.viewRelatorio || 'ESCALA',
+        tipoEscala: formData.tipoEscala || null,
+        view: formData.viewRelatorio,
       };
 
-      const response = await buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros);
+      const response = await buscarDadosRelatorio(formData.viewRelatorio, filtros);
 
       setResultados(response.content || []);
       setTotalElements(response.totalElements || 0);
@@ -807,7 +816,8 @@ const Relatorio = () => {
       tipoContestacao: '',
       subnucleo: '',
       classeJudicial: '',
-      viewRelatorio: 'ESCALA',
+      viewRelatorio: '',
+      tipoEscala: '',
     });
     setResultados([]);
     setTotalElements(0);
@@ -841,12 +851,13 @@ const Relatorio = () => {
         tipoContestacao: formData.tipoContestacao || null,
         subnucleo: formData.subnucleo || null,
         classeJudicial: formData.classeJudicial || null,
+        tipoEscala: formData.tipoEscala || null,
       };
 
       let blob;
       let nomeArquivo;
 
-      const viewType = formData.viewRelatorio || 'ESCALA';
+      const viewType = formData.viewRelatorio;
       
       if (viewType === 'AUDIENCIA') {
         blob = await relatorioService.gerarExcelAudiencia(filtros);
@@ -910,7 +921,7 @@ const Relatorio = () => {
               <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <TextField
                   select
-                  label="Tipo Relatório"
+                  label="Selecionar Tipo Relatório *"
                   fullWidth
                   value={formData.viewRelatorio}
                   onChange={(e) => setFormData({ ...formData, viewRelatorio: e.target.value })}
@@ -922,6 +933,24 @@ const Relatorio = () => {
                   ))}
                 </TextField>
               </Box>
+
+              {formData.viewRelatorio === 'ESCALA' && (
+                <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
+                  <TextField
+                    select
+                    label="Selecionar Tipo *"
+                    fullWidth
+                    value={formData.tipoEscala}
+                    onChange={(e) => setFormData({ ...formData, tipoEscala: e.target.value })}
+                  >
+                    {TIPO_ESCALA_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              )}
 
               <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
                 <Autocomplete
@@ -1041,7 +1070,7 @@ const Relatorio = () => {
                 color="primary"
                 startIcon={<IconSearch size={18} />}
                 onClick={() => handleBuscar(0)}
-                disabled={loading || !formData.dataInicio || !formData.dataFim}
+                disabled={loading || !formData.dataInicio || !formData.dataFim || !formData.viewRelatorio || (formData.viewRelatorio === 'ESCALA' && !formData.tipoEscala)}
               >
                 Gerar Relatório
               </Button>
