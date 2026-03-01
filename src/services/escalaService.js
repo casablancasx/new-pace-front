@@ -50,7 +50,9 @@ const escalaService = {
 
     const payload = {
       setorOrigemId: dados.setorOrigem?.id || null,
-      especieTarefaId: dados.especieTarefa?.id || null,
+      especieTarefa: dados.especieTarefa
+        ? { id: dados.especieTarefa.id, descricao: dados.especieTarefa.nome || dados.especieTarefa.descricao || null }
+        : null,
       dataInicio: dados.dataInicio || null,
       dataFim: dados.dataFim || null,
       tipoEscala: dados.tipoEscala || null,
@@ -64,7 +66,7 @@ const escalaService = {
       setorDestinoId: dados.setorDestino?.id || null,
     };
 
-    return api.post('/escala', payload);
+    return api.post('/escala/escalar', payload);
   },
 };
 

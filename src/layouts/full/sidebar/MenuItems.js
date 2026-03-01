@@ -58,6 +58,7 @@ import {
   IconChartPpf,
   IconChartArcs3,
   IconListTree,
+  IconArrowsExchange,
   IconLayoutSidebar,
   IconLock, IconAlignBoxLeftBottom, IconCheckbox, IconRadar, IconSlideshow, IconCaretUpDown, IconTable, IconForms
 } from '@tabler/icons-react';
@@ -118,6 +119,13 @@ const Menuitems = [
     icon: IconCalendarEvent,
     href: '/escala',
     roles: ['ADMIN', 'APOIO'],
+  },
+  {
+    id: uniqueId(),
+    title: 'Controle de Escala',
+    icon: IconArrowsExchange,
+    href: '/escala/controle',
+    roles: ['ADMIN'],
   },
   {
     id: uniqueId(),

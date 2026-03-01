@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Box,
   TextField,
@@ -410,12 +411,32 @@ const EscalaForm = () => {
     open: false, 
     loading: false, 
     message: '', 
-    success: false 
+    success: false,
+    audienciasNaoEscaladas: [],
   });
 
   const handleCloseDialog = () => {
-    setDialog({ open: false, loading: false, message: '', success: false });
+    setDialog({ open: false, loading: false, message: '', success: false, audienciasNaoEscaladas: [] });
     setFieldErrors({}); // Limpar erros ao fechar qualquer dialog
+  };
+
+  const handleDownloadRelatorio = () => {
+    const audiencias = dialog.audienciasNaoEscaladas || [];
+    const rows = audiencias.map((a) => ({
+      'ID Audiência': a.audienciaId,
+      'Número do Processo': a.numeroProcesso,
+      'Data': a.data,
+      'Hora': a.hora,
+      'Tipo Contestação': a.tipoContestacao,
+      'ID Processo': a.processoId,
+      'Classe Judicial': a.classeJudicial,
+      'Subnúcleo': a.subnucleo,
+      'Advogados': Array.isArray(a.advogados) ? a.advogados.join(', ') : a.advogados || '',
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Audiências Não Escaladas');
+    XLSX.writeFile(workbook, 'audiencias_nao_escaladas.xlsx');
   };
 
   const handleSubmit = async (e) => {
@@ -471,11 +492,13 @@ const EscalaForm = () => {
         tipoLabel = 'apoio';
       }
       
+      const audienciasNaoEscaladas = response?.audienciasNaoEscaladas || [];
       setDialog({ 
         open: true, 
         loading: false, 
         message: response?.message || `Processo de escala de ${tipoLabel} iniciado!`, 
-        success: true 
+        success: true,
+        audienciasNaoEscaladas,
       });
     } catch (error) {
       console.error('Erro ao escalar:', error);
@@ -489,7 +512,8 @@ const EscalaForm = () => {
         open: true, 
         loading: false, 
         message: errorMessage, 
-        success: false 
+        success: false,
+        audienciasNaoEscaladas: [],
       });
     } finally {
       setSubmitting(false);
@@ -1146,6 +1170,16 @@ const EscalaForm = () => {
               <Typography variant="body1" color="textSecondary">
                 {dialog.message}
               </Typography>
+              {dialog.success && dialog.audienciasNaoEscaladas?.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={handleDownloadRelatorio}
+                  sx={{ mt: 2 }}
+                >
+                  Baixar relatório de audiências não escaladas
+                </Button>
+              )}
             </>
           )}
         </DialogContent>

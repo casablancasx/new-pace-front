@@ -28,6 +28,7 @@ const ExSwitch = lazy(() => import("../pages/form-elements/ExSwitch"));
 const FormLayouts = lazy(() => import("../pages/form-layouts/FormLayouts"));
 const UploadPlanilha = lazy(() => import("../pages/upload-planilha/UploadPlanilha"));
 const EscalaForm = lazy(() => import("../pages/escala/EscalaForm"));
+const ControleEscala = lazy(() => import("../pages/escala/ControleEscala"));
 const Pautas = lazy(() => import("../pages/pautas/Pautas"));
 const DetalhesPauta = lazy(() => import("../pages/pautas/DetalhesPauta"));
 const Audiencias = lazy(() => import("../pages/audiencias/Audiencias"));
@@ -68,6 +69,11 @@ const Router = [
         path: '/escala', 
         exact: true, 
         element: <ProtectedRoute allowedRoles={['ADMIN', 'APOIO']}><EscalaForm /></ProtectedRoute> 
+      },
+      { 
+        path: '/escala/controle', 
+        exact: true, 
+        element: <ProtectedRoute allowedRoles={['ADMIN']}><ControleEscala /></ProtectedRoute> 
       },
       { path: '/pautas', exact: true, element: <Pautas /> },
       { path: '/pautas/:id', exact: true, element: <DetalhesPauta /> },
