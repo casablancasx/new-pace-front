@@ -66,6 +66,16 @@ const relatorioService = {
   },
 
   /**
+   * Busca resumo unificado dos cards (distribuição, contestações, totais e subnúcleos)
+   * @param {Object} filtros - Filtros da busca (inclui view: ESCALA | AUDIENCIA | AUDIENCIA_NAO_ENCONTRADA)
+   * @returns {Promise<Object>} { distribuicao, contestacoes, totaisGerais, subnucleos }
+   */
+  async buscarResumo(filtros) {
+    const params = this._montarParametros(filtros, true);
+    return api.get(`/relatorio/resumo?${params.toString()}`);
+  },
+
+  /**
    * Busca relatório de contestação
    * @param {Object} filtros - Filtros da busca
    * @returns {Promise<Array>} Lista de ContestacaoRelatorioDTO

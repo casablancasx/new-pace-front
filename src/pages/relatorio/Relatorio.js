@@ -188,9 +188,9 @@ const StyledCard = styled(Card)(() => ({
 // Componente de Card customizado para o relatório
 const ReportCard = ({ title, children, action }) => (
   <StyledCard sx={{ height: '100%' }}>
-    <CardContent sx={{ p: 3, height: '100%' }}>
+    <CardContent sx={{ p: 2, height: '100%' }}>
       {title && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
           <Typography variant="h5">{title}</Typography>
           {action}
         </Box>
@@ -274,140 +274,61 @@ const ContestacaoChart = ({ contestacoes }) => {
   );
 };
 
-// Componente de gráfico de pizza para Setores
-const SetoresChart = ({ setores }) => {
+// Componente de tabela de distribuição por usuário
+const DistribuicaoTable = ({ distribuicao }) => {
   const theme = useTheme();
-
-  // Ordenar por total decrescente
-  const sortedSetores = [...setores].sort((a, b) => b.total - a.total);
-  const labels = sortedSetores.map(item => item.setor || '-');
-  const data = sortedSetores.map(item => item.total || 0);
-  const total = data.reduce((acc, val) => acc + val, 0);
-
-  const colors = [
-    theme.palette.primary.main,
-    theme.palette.secondary.main,
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.error.main,
-    theme.palette.info.main,
-    '#8b5cf6',
-    '#ec4899',
-    '#06b6d4',
-    '#84cc16',
-  ];
-
-  const chartOptions = {
-    chart: {
-      type: 'donut',
-      fontFamily: "'Plus Jakarta Sans', sans-serif;",
-      foreColor: '#adb0bb',
-    },
-    colors: colors,
-    labels: labels,
-    dataLabels: {
-      enabled: true,
-      formatter: (val) => `${val.toFixed(0)}%`,
-      style: {
-        fontSize: '12px',
-        fontWeight: 600,
-      },
-      dropShadow: { enabled: false },
-    },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '55%',
-          labels: {
-            show: true,
-            name: {
-              show: true,
-              fontSize: '14px',
-              fontWeight: 600,
-            },
-            value: {
-              show: true,
-              fontSize: '20px',
-              fontWeight: 700,
-              formatter: (val) => parseInt(val).toLocaleString('pt-BR'),
-            },
-            total: {
-              show: true,
-              label: 'Total',
-              fontSize: '14px',
-              fontWeight: 600,
-              formatter: () => total.toLocaleString('pt-BR'),
-            },
-          },
-        },
-      },
-    },
-    legend: { show: false },
-    tooltip: {
-      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
-      y: {
-        formatter: (val) => val.toLocaleString('pt-BR'),
-      },
-    },
-    stroke: {
-      show: true,
-      width: 3,
-      colors: [theme.palette.background.paper],
-    },
-  };
+  if (!distribuicao || !distribuicao.dados || distribuicao.dados.length === 0) return null;
+  const { dados, totalGeral } = distribuicao;
 
   return (
-    <Box>
-      <Chart
-        options={chartOptions}
-        series={data}
-        type="donut"
-        height={280}
-        width="100%"
-      />
-      {/* Legenda customizada com cores e totais */}
-      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {sortedSetores.map((item, index) => {
-          const percentage = total > 0 ? ((item.total / total) * 100).toFixed(1) : 0;
-          return (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                '&:hover': { bgcolor: 'action.hover' }
-              }}
+    <Box sx={{ overflowX: 'auto' }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}` }}>Usuário</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}`, width: 90 }}>Audiências</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}`, width: 70 }}>%</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {dados.map((row, index) => (
+            <TableRow
+              key={index}
+              hover
+              sx={{ '&:last-child td': { borderBottom: `2px solid ${theme.palette.divider}` } }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box 
-                  sx={{ 
-                    width: 12, 
-                    height: 12, 
-                    borderRadius: '50%', 
-                    bgcolor: colors[index % colors.length],
-                    flexShrink: 0,
-                  }} 
-                />
+              <TableCell>
+                <Typography variant="body2" fontWeight={500}>{row.nome}</Typography>
+              </TableCell>
+              <TableCell align="right">
+                <Typography variant="body2" fontWeight={600}>
+                  {(row.totalAudiencias || 0).toLocaleString('pt-BR')}
+                </Typography>
+              </TableCell>
+              <TableCell align="right">
                 <Typography variant="body2" fontWeight={500}>
-                  {item.setor || '-'}
+                  {(row.percentual || 0).toFixed(1)}%
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body2" color="textSecondary">
-                  {percentage}%
-                </Typography>
-                <Typography variant="body2" fontWeight={600} sx={{ minWidth: 50, textAlign: 'right' }}>
-                  {(item.total || 0).toLocaleString('pt-BR')}
-                </Typography>
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+        {totalGeral > 0 && (
+          <TableBody>
+            <TableRow sx={{ bgcolor: 'action.hover' }}>
+              <TableCell>
+                <Typography variant="subtitle2" fontWeight={700}>Total</Typography>
+              </TableCell>
+              <TableCell align="right">
+                <Typography variant="subtitle2" fontWeight={700}>{totalGeral.toLocaleString('pt-BR')}</Typography>
+              </TableCell>
+              <TableCell align="right">
+                <Typography variant="subtitle2" fontWeight={700}>100%</Typography>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        )}
+      </Table>
     </Box>
   );
 };
@@ -578,13 +499,13 @@ const Relatorio = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [buscaRealizada, setBuscaRealizada] = useState(false);
 
-  // Estados para contestação e totais
-  const [contestacoes, setContestacoes] = useState([]);
-  const [totais, setTotais] = useState({ totalAudiencias: 0, totalPautas: 0 });
-
-  // Estados para setores e subnúcleos
-  const [setores, setSetores] = useState([]);
-  const [subnucleos, setSubnucleos] = useState([]);
+  // Estado unificado dos cards de resumo
+  const [resumo, setResumo] = useState({
+    distribuicao: { dados: [], totalGeral: 0 },
+    contestacoes: [],
+    totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
+    subnucleos: [],
+  });
 
   // Buscar usuários com debounce
   useEffect(() => {
@@ -690,16 +611,12 @@ const Relatorio = () => {
         view: formData.viewRelatorio,
       };
 
-      const results = await Promise.allSettled([
+      const [tabelaResult, resumoResult] = await Promise.allSettled([
         buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros),
-        relatorioService.buscarContestacao(filtros),
-        relatorioService.buscarTotais(filtros),
-        relatorioService.buscarSetores(filtros),
-        relatorioService.buscarSubnucleos(filtros),
+        relatorioService.buscarResumo(filtros),
       ]);
 
       // Tabela (sempre deve aparecer, mesmo se outros falharem)
-      const tabelaResult = results[0];
       if (tabelaResult.status === 'fulfilled') {
         setResultados(tabelaResult.value.content || []);
         setTotalElements(tabelaResult.value.totalElements || 0);
@@ -710,49 +627,34 @@ const Relatorio = () => {
         setTotalElements(0);
       }
 
-      // Contestação
-      const contestacaoResult = results[1];
-      if (contestacaoResult.status === 'fulfilled') {
-        setContestacoes(contestacaoResult.value || []);
+      // Resumo unificado dos cards
+      if (resumoResult.status === 'fulfilled') {
+        const data = resumoResult.value || {};
+        setResumo({
+          distribuicao: data.distribuicao || { dados: [], totalGeral: 0 },
+          contestacoes: data.contestacoes || [],
+          totaisGerais: data.totaisGerais || { totalAudiencias: 0, totalPautas: 0 },
+          subnucleos: data.subnucleos || [],
+        });
       } else {
-        console.error('Erro ao buscar contestações:', contestacaoResult.reason);
-        setContestacoes([]);
-      }
-
-      // Totais
-      const totaisResult = results[2];
-      if (totaisResult.status === 'fulfilled') {
-        setTotais(totaisResult.value || { totalAudiencias: 0, totalPautas: 0 });
-      } else {
-        console.error('Erro ao buscar totais:', totaisResult.reason);
-        setTotais({ totalAudiencias: 0, totalPautas: 0 });
-      }
-
-      // Setores
-      const setoresResult = results[3];
-      if (setoresResult.status === 'fulfilled') {
-        setSetores(setoresResult.value || []);
-      } else {
-        console.error('Erro ao buscar setores:', setoresResult.reason);
-        setSetores([]);
-      }
-
-      // Subnúcleos
-      const subnucleosResult = results[4];
-      if (subnucleosResult.status === 'fulfilled') {
-        setSubnucleos(subnucleosResult.value || []);
-      } else {
-        console.error('Erro ao buscar subnúcleos:', subnucleosResult.reason);
-        setSubnucleos([]);
+        console.error('Erro ao buscar resumo:', resumoResult.reason);
+        setResumo({
+          distribuicao: { dados: [], totalGeral: 0 },
+          contestacoes: [],
+          totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
+          subnucleos: [],
+        });
       }
     } catch (error) {
       console.error('Erro ao buscar relatório:', error);
       setResultados([]);
       setTotalElements(0);
-      setContestacoes([]);
-      setTotais({ totalAudiencias: 0, totalPautas: 0 });
-      setSetores([]);
-      setSubnucleos([]);
+      setResumo({
+        distribuicao: { dados: [], totalGeral: 0 },
+        contestacoes: [],
+        totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
+        subnucleos: [],
+      });
     } finally {
       setLoading(false);
     }
@@ -823,10 +725,12 @@ const Relatorio = () => {
     setTotalElements(0);
     setPage(0);
     setBuscaRealizada(false);
-    setContestacoes([]);
-    setTotais({ totalAudiencias: 0, totalPautas: 0 });
-    setSetores([]);
-    setSubnucleos([]);
+    setResumo({
+      distribuicao: { dados: [], totalGeral: 0 },
+      contestacoes: [],
+      totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
+      subnucleos: [],
+    });
   };
 
   // Estado para controlar o carregamento de Excel
@@ -1095,50 +999,94 @@ const Relatorio = () => {
           </Box>
         </ReportCard>
 
-        {/* ==================== CAMADA 2: TOTAIS + SUBNÚCLEO + CONTESTAÇÃO ==================== */}
+        {/* ==================== CAMADA 2: RESUMO (TOTAIS + SUBNÚCLEO + DISTRIBUIÇÃO + CONTESTAÇÃO) ==================== */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
-        ) : buscaRealizada && (totais.totalAudiencias > 0 || totais.totalPautas > 0 || subnucleos.length > 0 || contestacoes.length > 0) && (
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'stretch' }}>
-            {/* INÍCIO: Totais empilhados */}
-            {(totais.totalAudiencias > 0 || totais.totalPautas > 0) && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: 220, flexShrink: 0 }}>
-                {totais.totalAudiencias > 0 && (
-                  <ReportCard title="Total de Audiências">
-                    <Typography variant="h3" fontWeight={700}>
-                      {totais.totalAudiencias.toLocaleString('pt-BR')}
-                    </Typography>
-                  </ReportCard>
+        ) : buscaRealizada && (
+          resumo.totaisGerais.totalAudiencias > 0 ||
+          resumo.totaisGerais.totalPautas > 0 ||
+          resumo.subnucleos.length > 0 ||
+          resumo.contestacoes.length > 0 ||
+          (resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0)
+        ) && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+            {/* SEÇÃO 1: Totais (esquerda, empilhados) + Distribuição por Usuário (direita) */}
+            {(resumo.totaisGerais.totalAudiencias > 0 || resumo.totaisGerais.totalPautas > 0 || (resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0)) && (
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+
+                {/* Totais empilhados à esquerda */}
+                {(resumo.totaisGerais.totalAudiencias > 0 || resumo.totaisGerais.totalPautas > 0) && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 200, flexShrink: 0 }}>
+                    {resumo.totaisGerais.totalAudiencias > 0 && (
+                      <StyledCard sx={{ height: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>Total de Audiências</Typography>
+                          <Typography variant="h3" fontWeight={700} color="textPrimary">
+                            {resumo.totaisGerais.totalAudiencias.toLocaleString('pt-BR')}
+                          </Typography>
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                    {resumo.totaisGerais.totalPautas > 0 && (
+                      <StyledCard sx={{ height: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>Total de Pautas</Typography>
+                          <Typography variant="h3" fontWeight={700} color="textPrimary">
+                            {resumo.totaisGerais.totalPautas.toLocaleString('pt-BR')}
+                          </Typography>
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                  </Box>
                 )}
-                {totais.totalPautas > 0 && (
-                  <ReportCard title="Total de Pautas">
-                    <Typography variant="h3" fontWeight={700}>
-                      {totais.totalPautas.toLocaleString('pt-BR')}
-                    </Typography>
-                  </ReportCard>
+
+                {/* Distribuição por Usuário à direita */}
+                {resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0 && (
+                  <StyledCard sx={{ flex: 1 }}>
+                    <CardContent sx={{ p: 2, height: 300, display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="h5" sx={{ mb: 1.5 }}>Distribuição por Usuário</Typography>
+                      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+                        <DistribuicaoTable distribuicao={resumo.distribuicao} />
+                      </Box>
+                    </CardContent>
+                  </StyledCard>
                 )}
+
               </Box>
             )}
 
-            {/* MEIO: Subnúcleos */}
-            {subnucleos.length > 0 && (
-              <Box sx={{ flex: 1, minWidth: 280 }}>
-                <ReportCard title="Distribuição por Subnúcleo">
-                  <SubnucleosChart subnucleos={subnucleos} />
-                </ReportCard>
+            {/* SEÇÃO 2: Subnúcleo + Contestações lado a lado (sem scroll) */}
+            {(resumo.subnucleos.length > 0 || resumo.contestacoes.length > 0) && (
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+
+                {resumo.subnucleos.length > 0 && (
+                  <StyledCard sx={{ flex: 1, minWidth: 260, height: 450 }}>
+                    <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="h5" sx={{ mb: 1.5 }}>Distribuição por Subnúcleo</Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <SubnucleosChart subnucleos={resumo.subnucleos} />
+                      </Box>
+                    </CardContent>
+                  </StyledCard>
+                )}
+
+                {resumo.contestacoes.length > 0 && (
+                  <StyledCard sx={{ flex: 1, minWidth: 260, height: 450 }}>
+                    <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="h5" sx={{ mb: 1.5 }}>Contestações por Tipo</Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <ContestacaoChart contestacoes={resumo.contestacoes} />
+                      </Box>
+                    </CardContent>
+                  </StyledCard>
+                )}
+
               </Box>
             )}
 
-            {/* FIM: Contestações - MAIOR CARD */}
-            {contestacoes.length > 0 && (
-              <Box sx={{ flex: 2, minWidth: 350 }}>
-                <ReportCard title="Contestações por Tipo">
-                  <ContestacaoChart contestacoes={contestacoes} />
-                </ReportCard>
-              </Box>
-            )}
           </Box>
         )}
 
