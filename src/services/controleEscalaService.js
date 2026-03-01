@@ -25,6 +25,20 @@ const controleEscalaService = {
   },
 
   /**
+   * Escala manual de audiência
+   */
+  async escalarManual({ audienciaId, usuarioId, tipoEscala, setorOrigemId, setorDestinoId, especieTarefa }) {
+    return api.post('/escala/manual', {
+      audienciaId,
+      usuarioId,
+      tipoEscala,
+      setorOrigemId,
+      setorDestinoId,
+      especieTarefa,
+    });
+  },
+
+  /**
    * Listar usuários por tipo de escala (para o dropdown de troca)
    */
   async listarUsuariosPorTipo(tipoEscala, nome = '') {

@@ -343,6 +343,11 @@ const ControleEscala = () => {
                   '& .MuiTableCell-root': {
                     whiteSpace: 'normal',
                     wordWrap: 'break-word',
+                    fontSize: '0.75rem',
+                    padding: '6px 12px',
+                  },
+                  '& .MuiTypography-root': {
+                    fontSize: 'inherit',
                   },
                 }}
               >

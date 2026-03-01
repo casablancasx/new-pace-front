@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import {
   Box,
   TextField,
@@ -22,17 +22,28 @@ import {
   Menu,
   MenuItem,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  Divider,
+  Alert,
 } from '@mui/material';
-import { IconFilterOff, IconSearch, IconAlertCircle, IconCalendar, IconColumns } from '@tabler/icons-react';
+import { IconFilterOff, IconSearch, IconAlertCircle, IconCalendar, IconColumns, IconSettings, IconExternalLink } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import audienciaService from '../../services/audienciaService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
 import { getRespostaAnaliseColor, getRespostaAnaliseDescricao } from '../../constants/respostaAnaliseAvaliador';
+import { AuthContext } from '../../context/AuthContext';
+import controleEscalaService from '../../services/controleEscalaService';
+import sapiensService from '../../services/sapiensService';
 
 // Styled TableRow
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  cursor: 'pointer',
   '&:hover': {
     backgroundColor: theme.palette.action.hover,
   },
@@ -123,7 +134,24 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('pt-BR');
 };
 
+const TIPO_ESCALA_OPTS = [
+  { value: 'PAUTISTA', label: 'Pautista' },
+  { value: 'AVALIADOR', label: 'Avaliador' },
+  { value: 'APOIO', label: 'Apoio' },
+];
+
+const INITIAL_ESCALA_FORM = {
+  tipoEscala: '',
+  usuario: null,
+  setorOrigem: null,
+  setorDestino: null,
+  especieTarefa: null,
+};
+
 const Audiencias = () => {
+  const { user } = useContext(AuthContext);
+  const isAdmin = user?.role === 'ADMIN';
+
   // Definição de colunas disponíveis
   const ALL_COLUMNS = [
     { id: 'id', label: 'ID' },
@@ -194,6 +222,27 @@ const Audiencias = () => {
   const [audiencias, setAudiencias] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // ─── Modal Escala Manual ──────────────────────────────────────────────────
+  const [escalaModalOpen, setEscalaModalOpen] = useState(false);
+  const [selectedAudiencia, setSelectedAudiencia] = useState(null);
+  const [escalaForm, setEscalaForm] = useState(INITIAL_ESCALA_FORM);
+  const [usuariosDisponiveis, setUsuariosDisponiveis] = useState([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
+  const [setorOrigemOptions, setSetorOrigemOptions] = useState([]);
+  const [setorOrigemLoading, setSetorOrigemLoading] = useState(false);
+  const [setorOrigemInput, setSetorOrigemInput] = useState('');
+  const [setorDestinoOptions, setSetorDestinoOptions] = useState([]);
+  const [setorDestinoLoading, setSetorDestinoLoading] = useState(false);
+  const [setorDestinoInput, setSetorDestinoInput] = useState('');
+  const [especieTarefaOptions, setEspecieTarefaOptions] = useState([]);
+  const [especieTarefaLoading, setEspecieTarefaLoading] = useState(false);
+  const [especieTarefaInput, setEspecieTarefaInput] = useState('');
+  const [modalFeedback, setModalFeedback] = useState({ type: '', message: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const setorOrigemDebounceRef = useRef(null);
+  const setorDestinoDebounceRef = useRef(null);
+  const especieTarefaDebounceRef = useRef(null);
+
   // Estados para busca de orgao julgador
   const [orgaoJulgadorOptions, setOrgaoJulgadorOptions] = useState([]);
   const [orgaoJulgadorSearchTerm, setOrgaoJulgadorSearchTerm] = useState('');
@@ -233,6 +282,61 @@ const Audiencias = () => {
     };
     carregarOrgaos();
   }, []);
+
+  // ─── Efeitos de busca no Sapiens (modal) ─────────────────────────────────────────────
+  useEffect(() => {
+    if (setorOrigemDebounceRef.current) clearTimeout(setorOrigemDebounceRef.current);
+    if (setorOrigemInput.length < 2) { setSetorOrigemOptions([]); return; }
+    setorOrigemDebounceRef.current = setTimeout(async () => {
+      setSetorOrigemLoading(true);
+      try {
+        const results = await sapiensService.buscarSetorLivre(setorOrigemInput);
+        setSetorOrigemOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar setor origem:', err);
+        setSetorOrigemOptions([]);
+      } finally {
+        setSetorOrigemLoading(false);
+      }
+    }, 400);
+    return () => { if (setorOrigemDebounceRef.current) clearTimeout(setorOrigemDebounceRef.current); };
+  }, [setorOrigemInput]);
+
+  useEffect(() => {
+    if (setorDestinoDebounceRef.current) clearTimeout(setorDestinoDebounceRef.current);
+    if (setorDestinoInput.length < 2) { setSetorDestinoOptions([]); return; }
+    setorDestinoDebounceRef.current = setTimeout(async () => {
+      setSetorDestinoLoading(true);
+      try {
+        const results = await sapiensService.buscarSetorLivre(setorDestinoInput);
+        setSetorDestinoOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar setor destino:', err);
+        setSetorDestinoOptions([]);
+      } finally {
+        setSetorDestinoLoading(false);
+      }
+    }, 400);
+    return () => { if (setorDestinoDebounceRef.current) clearTimeout(setorDestinoDebounceRef.current); };
+  }, [setorDestinoInput]);
+
+  useEffect(() => {
+    if (especieTarefaDebounceRef.current) clearTimeout(especieTarefaDebounceRef.current);
+    if (especieTarefaInput.length < 2) { setEspecieTarefaOptions([]); return; }
+    especieTarefaDebounceRef.current = setTimeout(async () => {
+      setEspecieTarefaLoading(true);
+      try {
+        const results = await sapiensService.buscarEspecieTarefa(especieTarefaInput);
+        setEspecieTarefaOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar espécie de tarefa:', err);
+        setEspecieTarefaOptions([]);
+      } finally {
+        setEspecieTarefaLoading(false);
+      }
+    }, 400);
+    return () => { if (especieTarefaDebounceRef.current) clearTimeout(especieTarefaDebounceRef.current); };
+  }, [especieTarefaInput]);
 
   // Buscar audiencias
   const buscarAudiencias = useCallback(async () => {
@@ -293,13 +397,82 @@ const Audiencias = () => {
     setPage(0);
   };
 
-  const handleRowClick = (audiencia) => {
+  const handleVerProcesso = (e, audiencia) => {
+    e.stopPropagation();
     if (audiencia?.processoUrl) {
       window.open(audiencia.processoUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
+  const handleAbrirEscalaManual = (e, audiencia) => {
+    e.stopPropagation();
+    setSelectedAudiencia(audiencia);
+    setEscalaForm(INITIAL_ESCALA_FORM);
+    setUsuariosDisponiveis([]);
+    setSetorOrigemOptions([]);
+    setSetorOrigemInput('');
+    setSetorDestinoOptions([]);
+    setSetorDestinoInput('');
+    setEspecieTarefaOptions([]);
+    setEspecieTarefaInput('');
+    setModalFeedback({ type: '', message: '' });
+    setEscalaModalOpen(true);
+  };
+
+  const handleFecharModal = () => {
+    setEscalaModalOpen(false);
+    setSelectedAudiencia(null);
+    setEscalaForm(INITIAL_ESCALA_FORM);
+    setModalFeedback({ type: '', message: '' });
+  };
+
+  const handleTipoEscalaChange = async (value) => {
+    setEscalaForm((prev) => ({ ...prev, tipoEscala: value, usuario: null }));
+    setUsuariosDisponiveis([]);
+    if (!value) return;
+    setLoadingUsuarios(true);
+    try {
+      const lista = await controleEscalaService.listarUsuariosPorTipo(value);
+      setUsuariosDisponiveis(lista.filter((u) => u.contaAtiva));
+    } catch (err) {
+      console.error('Erro ao carregar usuários:', err);
+    } finally {
+      setLoadingUsuarios(false);
+    }
+  };
+
+  const handleSubmitEscalaManual = async () => {
+    const { tipoEscala, usuario, setorOrigem, setorDestino, especieTarefa } = escalaForm;
+    if (!tipoEscala || !usuario || !setorOrigem || !setorDestino || !especieTarefa) {
+      setModalFeedback({ type: 'error', message: 'Preencha todos os campos obrigatórios.' });
+      return;
+    }
+    setSubmitting(true);
+    setModalFeedback({ type: '', message: '' });
+    try {
+      await controleEscalaService.escalarManual({
+        audienciaId: selectedAudiencia.audienciaId,
+        usuarioId: usuario.sapiensId,
+        tipoEscala,
+        setorOrigemId: setorOrigem.id,
+        setorDestinoId: setorDestino.id,
+        especieTarefa: { id: especieTarefa.id, descricao: especieTarefa.nome },
+      });
+      setModalFeedback({ type: 'success', message: 'Escala manual realizada com sucesso!' });
+      setTimeout(() => {
+        handleFecharModal();
+        buscarAudiencias();
+      }, 1500);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Erro ao realizar escala manual.';
+      setModalFeedback({ type: 'error', message: msg });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
+    <>
     <PageContainer title="Consulta de Audiencias" description="Consulta de Audiencias">
       {/* Secao de Filtros */}
       <Box sx={{ mb: 3 }}>
@@ -413,6 +586,11 @@ const Audiencias = () => {
                   '& .MuiTableCell-root': {
                     whiteSpace: 'normal',
                     wordWrap: 'break-word',
+                    fontSize: '0.75rem',
+                    padding: '6px 12px',
+                  },
+                  '& .MuiTypography-root': {
+                    fontSize: 'inherit',
                   },
                 }}
               >
@@ -528,6 +706,22 @@ const Audiencias = () => {
                         </Typography>
                       </TableCell>
                     )}
+                    <TableCell
+                      sx={{
+                        position: 'sticky',
+                        right: 0,
+                        backgroundColor: 'background.paper',
+                        zIndex: 1,
+                        minWidth: 96,
+                        textAlign: 'center',
+                        borderLeft: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Ações
+                      </Typography>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -535,7 +729,6 @@ const Audiencias = () => {
                     audiencias.map((audiencia) => (
                       <StyledTableRow 
                         key={audiencia.audienciaId}
-                        onClick={() => handleRowClick(audiencia)}
                       >
                         {visibleColumns.id && (
                           <TableCell>
@@ -639,11 +832,48 @@ const Audiencias = () => {
                             </Typography>
                           </TableCell>
                         )}
+                        <TableCell
+                          sx={{
+                            position: 'sticky',
+                            right: 0,
+                            backgroundColor: 'background.paper',
+                            zIndex: 1,
+                            borderLeft: '1px solid',
+                            borderColor: 'divider',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                            <Tooltip title="Ver processo" placement="top">
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={(e) => handleVerProcesso(e, audiencia)}
+                                  disabled={!audiencia?.processoUrl}
+                                >
+                                  <IconExternalLink size={16} />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            {isAdmin && (
+                              <Tooltip title="Escalar manualmente" placement="top">
+                                <IconButton
+                                  size="small"
+                                  color="secondary"
+                                  onClick={(e) => handleAbrirEscalaManual(e, audiencia)}
+                                >
+                                  <IconSettings size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
                       </StyledTableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={ALL_COLUMNS.filter(c => visibleColumns[c.id]).length || 1} align="center">
+                      <TableCell colSpan={(ALL_COLUMNS.filter(c => visibleColumns[c.id]).length || 1) + 1} align="center">
                         <Typography color="textSecondary" sx={{ py: 3 }}>
                           Nenhuma audiencia encontrada
                         </Typography>
@@ -671,6 +901,177 @@ const Audiencias = () => {
         </Box>
       </DashboardCard>
     </PageContainer>
+
+    {/* ─── Modal Escala Manual ─────────────────────────────────────── */}
+    <Dialog open={escalaModalOpen} onClose={handleFecharModal} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Escala Manual de Audiência</DialogTitle>
+      <DialogContent dividers>
+        {selectedAudiencia && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Dados da Audiência
+            </Typography>
+            <Divider sx={{ mb: 1.5 }} />
+            <Stack spacing={0.5}>
+              <Typography variant="body2" color="textSecondary">
+                <strong>Processo:</strong> {selectedAudiencia.numeroProcesso || '-'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                <strong>Data:</strong> {formatDate(selectedAudiencia.data)}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                <strong>Horário:</strong> {selectedAudiencia.horario || '-'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                <strong>Parte:</strong> {selectedAudiencia.nomeParte || '-'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                <strong>Tipo Contestação:</strong> {selectedAudiencia.tipoContestacao || '-'}
+              </Typography>
+            </Stack>
+          </Box>
+        )}
+
+        <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mt: 2 }}>
+          Configuração da Escala
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+
+        <Stack spacing={2}>
+          {/* Tipo de Escala */}
+          <FormControl fullWidth size="small">
+            <InputLabel>Tipo de Escala *</InputLabel>
+            <Select
+              label="Tipo de Escala *"
+              value={escalaForm.tipoEscala}
+              onChange={(e) => handleTipoEscalaChange(e.target.value)}
+            >
+              <MenuItem value=""><em>Selecione</em></MenuItem>
+              {TIPO_ESCALA_OPTS.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Usuário Destino */}
+          <FormControl fullWidth size="small">
+            <InputLabel>Usuário Destino *</InputLabel>
+            <Select
+              label="Usuário Destino *"
+              value={escalaForm.usuario?.sapiensId || ''}
+              onChange={(e) => {
+                const u = usuariosDisponiveis.find((x) => x.sapiensId === e.target.value);
+                setEscalaForm((prev) => ({ ...prev, usuario: u || null }));
+              }}
+              disabled={!escalaForm.tipoEscala || loadingUsuarios}
+            >
+              <MenuItem value=""><em>{loadingUsuarios ? 'Carregando...' : 'Selecione'}</em></MenuItem>
+              {usuariosDisponiveis.map((u) => (
+                <MenuItem key={u.sapiensId} value={u.sapiensId}>
+                  {u.nome} ({u.sapiensId})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Setor Origem */}
+          <Autocomplete
+            options={setorOrigemOptions}
+            getOptionLabel={(opt) => opt.nome ? `${opt.nome}${opt.unidadeNome ? ' - ' + opt.unidadeNome : ''}` : ''}
+            isOptionEqualToValue={(opt, val) => opt.id === val.id}
+            value={escalaForm.setorOrigem}
+            loading={setorOrigemLoading}
+            onInputChange={(_, v) => setSetorOrigemInput(v)}
+            onChange={(_, v) => setEscalaForm((prev) => ({ ...prev, setorOrigem: v }))}
+            noOptionsText={setorOrigemInput.length < 2 ? 'Digite ao menos 2 caracteres' : 'Nenhum setor encontrado'}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Setor Origem *"
+                size="small"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>{setorOrigemLoading ? <CircularProgress size={16} /> : null}{params.InputProps.endAdornment}</>
+                  ),
+                }}
+              />
+            )}
+          />
+
+          {/* Setor Destino */}
+          <Autocomplete
+            options={setorDestinoOptions}
+            getOptionLabel={(opt) => opt.nome ? `${opt.nome}${opt.unidadeNome ? ' - ' + opt.unidadeNome : ''}` : ''}
+            isOptionEqualToValue={(opt, val) => opt.id === val.id}
+            value={escalaForm.setorDestino}
+            loading={setorDestinoLoading}
+            onInputChange={(_, v) => setSetorDestinoInput(v)}
+            onChange={(_, v) => setEscalaForm((prev) => ({ ...prev, setorDestino: v }))}
+            noOptionsText={setorDestinoInput.length < 2 ? 'Digite ao menos 2 caracteres' : 'Nenhum setor encontrado'}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Setor Destino *"
+                size="small"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>{setorDestinoLoading ? <CircularProgress size={16} /> : null}{params.InputProps.endAdornment}</>
+                  ),
+                }}
+              />
+            )}
+          />
+
+          {/* Espécie de Tarefa */}
+          <Autocomplete
+            options={especieTarefaOptions}
+            getOptionLabel={(opt) => opt.nome ? `${opt.nome} (${opt.id})` : ''}
+            isOptionEqualToValue={(opt, val) => opt.id === val.id}
+            value={escalaForm.especieTarefa}
+            loading={especieTarefaLoading}
+            onInputChange={(_, v) => setEspecieTarefaInput(v)}
+            onChange={(_, v) => setEscalaForm((prev) => ({ ...prev, especieTarefa: v }))}
+            noOptionsText={especieTarefaInput.length < 2 ? 'Digite ao menos 2 caracteres' : 'Nenhuma espécie encontrada'}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Espécie de Tarefa *"
+                size="small"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>{especieTarefaLoading ? <CircularProgress size={16} /> : null}{params.InputProps.endAdornment}</>
+                  ),
+                }}
+              />
+            )}
+          />
+        </Stack>
+
+        {modalFeedback.message && (
+          <Alert severity={modalFeedback.type || 'info'} sx={{ mt: 2 }}>
+            {modalFeedback.message}
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={handleFecharModal} variant="outlined" color="secondary" disabled={submitting}>
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmitEscalaManual}
+          variant="contained"
+          color="primary"
+          disabled={submitting}
+          startIcon={submitting ? <CircularProgress size={16} /> : <IconSettings size={16} />}
+        >
+          {submitting ? 'Escalando...' : 'Escalar Audiência'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

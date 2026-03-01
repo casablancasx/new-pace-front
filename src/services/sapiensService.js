@@ -160,6 +160,57 @@ const sapiensService = {
     }));
   },
 
+  // Buscar setores na API do Sapiens sem filtrar por unidade (busca livre)
+  async buscarSetorLivre(termo) {
+    if (!termo || termo.length < 2) {
+      return [];
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token não encontrado');
+      return [];
+    }
+
+    const where = {
+      orX: [
+        { andX: [{ nome: `like:%${termo}%` }] },
+        { andX: [{ sigla: `like:%${termo}%` }] }
+      ]
+    };
+
+    const queryParams = [
+      `where=${encodeURIComponent(JSON.stringify(where))}`,
+      `limit=30`,
+      `offset=0`,
+      `order=${encodeURIComponent('{}')}`,
+      `populate=${encodeURIComponent(JSON.stringify(['unidade']))}`,
+      `context=${encodeURIComponent('{}')}`
+    ].join('&');
+
+    const url = `${SAPIENS_URL}/v1/administrativo/setor?${queryParams}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Erro na resposta do Sapiens:', response.status, response.statusText);
+      throw new Error('Erro ao buscar setores no Sapiens');
+    }
+
+    const data = await response.json();
+    return (data.entities || []).map(entity => ({
+      id: entity.id,
+      nome: entity.nome,
+      unidadeNome: entity.unidade?.nome || '',
+    }));
+  },
+
   // Buscar setores na API do Sapiens
   async buscarSetor(termo, unidadeId) {
     if (!termo || termo.length < 2) {
