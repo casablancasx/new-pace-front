@@ -16,7 +16,7 @@ const apoioService = {
       id: item.id,
       nome: item.nome,
       email: item.email,
-      setores: item.setores || [],
+      cargo: item.cargo || '',
       quantidadeAudiencias: item.quantidadeAudiencias || 0,
       quantidadePautas: item.quantidadePautas || 0,
       disponivel: item.disponivel,
@@ -54,7 +54,7 @@ const apoioService = {
       id: item.id,
       nome: item.nome,
       email: item.email,
-      setor: typeof item.setor === 'string' ? item.setor : (item.setor?.nome || ''),
+      cargo: item.cargo || '',
     }));
   },
 

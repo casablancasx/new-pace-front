@@ -15,11 +15,11 @@ const pautistaService = {
     // Mapear resposta para o formato esperado pelo frontend
     // Formato da API: { content: [...], page: { size, number, totalElements, totalPages } }
     const content = (response.content || []).map(item => ({
+      id: item.id,
       sapiensId: item.id,
       nome: item.nome,
       email: item.email,
-      setor: { nome: item.setor || '' },
-      unidade: { nome: item.unidade || '' },
+      cargo: item.cargo || '',
       quantidadePautas: item.quantidadePautas || 0,
       quantidadeAudiencias: item.quantidadeAudiencias || 0,
       disponivel: item.disponivel,
@@ -55,10 +55,10 @@ const pautistaService = {
     
     // Mapear resposta para o formato esperado pelo Autocomplete
     return (response.content || []).map(item => ({
-      id: item.id || item.sapiensId,
+      id: item.id,
       nome: item.nome,
       email: item.email,
-      setor: typeof item.setor === 'string' ? item.setor : (item.setor?.nome || ''),
+      cargo: item.cargo || '',
     }));
   },
 

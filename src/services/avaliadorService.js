@@ -15,11 +15,11 @@ const avaliadorService = {
     // Mapear resposta para o formato esperado pelo frontend
     // Novo formato da API: { content: [...], page: { size, number, totalElements, totalPages } }
     const content = (response.content || []).map(item => ({
+      id: item.id,
       sapiensId: item.id,
       nome: item.nome,
       email: item.email,
-      setor: { nome: item.setor || '' },
-      unidade: { nome: item.unidade || '' },
+      cargo: item.cargo || '',
       quantidadePautas: item.quantidadePautas || 0,
       quantidadeAudiencias: item.quantidadeAudiencias || 0,
       disponivel: item.disponivel,
@@ -56,12 +56,11 @@ const avaliadorService = {
     const response = await api.get(`/usuarios/avaliadores?${params.toString()}`);
     
     // Mapear resposta para o formato esperado pelo Autocomplete
-    // Suporta novo formato da API onde setor é string
     return (response.content || []).map(item => ({
-      id: item.id || item.sapiensId,
+      id: item.id,
       nome: item.nome,
       email: item.email,
-      setor: typeof item.setor === 'string' ? item.setor : (item.setor?.nome || ''),
+      cargo: item.cargo || '',
     }));
   },
 

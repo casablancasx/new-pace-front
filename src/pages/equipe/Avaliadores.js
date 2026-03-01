@@ -379,6 +379,11 @@ const Avaliadores = () => {
                     Email
                   </Typography>
                 </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Cargo
+                  </Typography>
+                </TableCell>
                 <TableCell align="center">
                   <Typography variant="subtitle2" fontWeight={600}>
                     Audiências
@@ -394,9 +399,14 @@ const Avaliadores = () => {
                     Avaliadas
                   </Typography>
                 </TableCell>
-                <TableCell align="center" sx={{ width: '25%' }}>
+                <TableCell align="center" sx={{ width: '20%' }}>
                   <Typography variant="subtitle2" fontWeight={600}>
                     Progresso
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Disponível
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
@@ -422,6 +432,11 @@ const Avaliadores = () => {
                     <TableCell>
                       <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
                         {avaliador.email}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                        {avaliador.cargo || '-'}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
@@ -452,6 +467,17 @@ const Avaliadores = () => {
                           {percentualAnalisadas}%
                         </Typography>
                       </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography 
+                        variant="subtitle2" 
+                        fontWeight={500}
+                        sx={{ 
+                          color: avaliador.disponivel ? '#4caf50' : '#f44336',
+                        }}
+                      >
+                        {avaliador.disponivel ? 'Sim' : 'Não'}
+                      </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Remover">

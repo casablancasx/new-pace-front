@@ -364,9 +364,19 @@ const Pautistas = () => {
                     Cargo
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell align="center">
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Setores
+                    Audiências
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Pautas
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Disponível
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
@@ -394,11 +404,25 @@ const Pautistas = () => {
                       {pautista.cargo || '-'}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                      {pautista.setores && pautista.setores.length > 0
-                        ? pautista.setores.map(s => s.nome).join(', ')
-                        : '-'}
+                      {pautista.quantidadeAudiencias || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
+                      {pautista.quantidadePautas || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography 
+                      variant="subtitle2" 
+                      fontWeight={500}
+                      sx={{ 
+                        color: pautista.disponivel ? '#4caf50' : '#f44336',
+                      }}
+                    >
+                      {pautista.disponivel ? 'Sim' : 'Não'}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">

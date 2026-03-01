@@ -359,17 +359,22 @@ const Apoio = () => {
                 </TableCell>
                 <TableCell>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Telefone
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="subtitle2" fontWeight={600}>
                     Cargo
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell align="center">
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Setores
+                    Audiências
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Pautas
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    Disponível
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
@@ -394,17 +399,28 @@ const Apoio = () => {
                   </TableCell>
                   <TableCell>
                     <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                      {apoio.telefone}
+                      {apoio.cargo || '-'}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                      {apoio.cargo}
+                      {apoio.quantidadeAudiencias || 0}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Typography color="textSecondary" variant="subtitle2" fontWeight={400}>
-                      {apoio.setores?.map(s => s.nome).join(', ') || '-'}
+                      {apoio.quantidadePautas || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography 
+                      variant="subtitle2" 
+                      fontWeight={500}
+                      sx={{ 
+                        color: apoio.disponivel ? '#4caf50' : '#f44336',
+                      }}
+                    >
+                      {apoio.disponivel ? 'Sim' : 'Não'}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
