@@ -733,10 +733,11 @@ const Relatorio = () => {
     });
   };
 
-  // Estado para controlar o carregamento de Excel
-  const [excelLoading, setExcelLoading] = useState(false);
+  // Estados para controlar o carregamento de Excel
+  const [excelLoadingAudiencia, setExcelLoadingAudiencia] = useState(false);
+  const [excelLoadingPauta, setExcelLoadingPauta] = useState(false);
 
-  const handleGerarExcel = async () => {
+  const handleGerarExcelAudiencia = async () => {
     if (!buscaRealizada) {
       return;
     }
@@ -745,7 +746,7 @@ const Relatorio = () => {
       return;
     }
 
-    setExcelLoading(true);
+    setExcelLoadingAudiencia(true);
     try {
       const filtros = {
         dataInicio: formData.dataInicio,
@@ -784,10 +785,50 @@ const Relatorio = () => {
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Erro ao gerar e baixar Excel:', error);
-      alert('Erro ao gerar o arquivo Excel. Verifique o console para mais detalhes.');
+      console.error('Erro ao gerar e baixar Excel de Audiências:', error);
+      alert('Erro ao gerar o arquivo Excel de Audiências. Verifique o console para mais detalhes.');
     } finally {
-      setExcelLoading(false);
+      setExcelLoadingAudiencia(false);
+    }
+  };
+
+  const handleGerarExcelPauta = async () => {
+    if (!buscaRealizada) {
+      return;
+    }
+
+    if (!formData.dataInicio || !formData.dataFim) {
+      return;
+    }
+
+    setExcelLoadingPauta(true);
+    try {
+      const filtros = {
+        dataInicio: formData.dataInicio,
+        dataFim: formData.dataFim,
+        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
+        tipoContestacao: formData.tipoContestacao || null,
+        subnucleo: formData.subnucleo || null,
+        classeJudicial: formData.classeJudicial || null,
+      };
+
+      const blob = await relatorioService.gerarExcelPauta(filtros);
+      const nomeArquivo = `Pautas_${formData.dataInicio}_${formData.dataFim}.xlsx`;
+
+      // Criar URL blob e fazer download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', nomeArquivo);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao gerar e baixar Excel de Pautas:', error);
+      alert('Erro ao gerar o arquivo Excel de Pautas. Verifique o console para mais detalhes.');
+    } finally {
+      setExcelLoadingPauta(false);
     }
   };
 
@@ -990,10 +1031,19 @@ const Relatorio = () => {
                 variant="outlined"
                 color="success"
                 startIcon={<IconFileSpreadsheet size={18} />}
-                onClick={handleGerarExcel}
-                disabled={!buscaRealizada || excelLoading}
+                onClick={handleGerarExcelAudiencia}
+                disabled={!buscaRealizada || excelLoadingAudiencia}
               >
-                {excelLoading ? 'Gerando Excel...' : 'Gerar Excel'}
+                {excelLoadingAudiencia ? 'Gerando...' : 'Gerar Excel de Audiências'}
+              </Button>
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<IconFileSpreadsheet size={18} />}
+                onClick={handleGerarExcelPauta}
+                disabled={!buscaRealizada || excelLoadingPauta}
+              >
+                {excelLoadingPauta ? 'Gerando...' : 'Gerar Excel de Pautas'}
               </Button>
             </Box>
           </Box>

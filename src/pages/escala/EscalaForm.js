@@ -16,8 +16,7 @@ import {
   Tooltip,
   MenuItem,
 } from '@mui/material';
-import { IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react';
-import { IconPlayerPlay } from '@tabler/icons-react';
+import { IconCheck, IconX, IconInfoCircle, IconFileSpreadsheet, IconPlayerPlay } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import sapiensService from '../../services/sapiensService';
@@ -422,18 +421,55 @@ const EscalaForm = () => {
 
   const handleDownloadRelatorio = () => {
     const audiencias = dialog.audienciasNaoEscaladas || [];
-    const rows = audiencias.map((a) => ({
-      'ID Audiência': a.audienciaId,
-      'Número do Processo': a.numeroProcesso,
-      'Data': a.data,
-      'Hora': a.hora,
-      'Tipo Contestação': a.tipoContestacao,
-      'ID Processo': a.processoId,
-      'Classe Judicial': a.classeJudicial,
-      'Subnúcleo': a.subnucleo,
-      'Advogados': Array.isArray(a.advogados) ? a.advogados.join(', ') : a.advogados || '',
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    const headers = [
+      'ID Audiência',
+      'Número do Processo',
+      'Data',
+      'Hora',
+      'Tipo Contestação',
+      'ID Processo',
+      'Classe Judicial',
+      'Subnúcleo',
+      'Motivo do Erro',
+    ];
+
+    const dataRows = audiencias.map((a) => [
+      a.audienciaId,
+      a.numeroProcesso,
+      a.data,
+      a.hora,
+      a.tipoContestacao,
+      a.processoId,
+      a.classeJudicial,
+      a.subnucleo,
+      a.motivoErroEscala || '',
+    ]);
+
+    const sheetData = [headers, ...dataRows];
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Definir larguras das colunas
+    worksheet['!cols'] = [
+      { wch: 14 },  // ID Audiência
+      { wch: 36 },  // Número do Processo
+      { wch: 12 },  // Data
+      { wch: 8 },   // Hora
+      { wch: 20 },  // Tipo Contestação
+      { wch: 12 },  // ID Processo
+      { wch: 16 },  // Classe Judicial
+      { wch: 12 },  // Subnúcleo
+      { wch: 55 },  // Motivo do Erro
+    ];
+
+    // Definir autofilter cobrindo todas as colunas do cabeçalho
+    const lastCol = XLSX.utils.encode_col(headers.length - 1);
+    const lastRow = sheetData.length;
+    worksheet['!autofilter'] = { ref: `A1:${lastCol}1` };
+
+    // Congelar linha do cabeçalho
+    worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Audiências Não Escaladas');
     XLSX.writeFile(workbook, 'audiencias_nao_escaladas.xlsx');
@@ -1171,14 +1207,23 @@ const EscalaForm = () => {
                 {dialog.message}
               </Typography>
               {dialog.success && dialog.audienciasNaoEscaladas?.length > 0 && (
-                <Button
-                  variant="outlined"
-                  color="warning"
+                <Box
                   onClick={handleDownloadRelatorio}
-                  sx={{ mt: 2 }}
+                  sx={{
+                    mt: 2,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    cursor: 'pointer',
+                    color: 'warning.dark',
+                    '&:hover': { color: 'warning.main', textDecoration: 'underline' },
+                  }}
                 >
-                  Baixar relatório de audiências não escaladas
-                </Button>
+                  <IconFileSpreadsheet size={18} />
+                  <Typography variant="body2" fontWeight={600}>
+                    Baixar relatório de audiências não escaladas
+                  </Typography>
+                </Box>
               )}
             </>
           )}

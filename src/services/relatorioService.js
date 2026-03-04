@@ -265,6 +265,39 @@ const relatorioService = {
       throw error;
     }
   },
+
+  /**
+   * Gera Excel para relatório de pautas
+   * @param {Object} filtros - Filtros da busca
+   * @returns {Promise<Blob>} Arquivo Excel
+   */
+  async gerarExcelPauta(filtros) {
+    const params = new URLSearchParams();
+    
+    params.append('dataInicio', filtros.dataInicio);
+    params.append('dataFim', filtros.dataFim);
+    
+    if (filtros.orgaoJulgadorId) {
+      params.append('orgaoJulgadorId', filtros.orgaoJulgadorId.toString());
+    }
+    if (filtros.tipoContestacao) {
+      params.append('tipoContestacao', filtros.tipoContestacao);
+    }
+    if (filtros.subnucleo) {
+      params.append('subnucleo', filtros.subnucleo);
+    }
+    if (filtros.classeJudicial) {
+      params.append('classeJudicial', filtros.classeJudicial);
+    }
+
+    try {
+      const blob = await api.downloadBlob(`/relatorio/excel/pauta?${params.toString()}`);
+      return blob;
+    } catch (error) {
+      console.error('Erro ao gerar Excel de Pautas:', error);
+      throw error;
+    }
+  },
 };
 
 export default relatorioService;
