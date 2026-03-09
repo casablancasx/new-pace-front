@@ -58,7 +58,7 @@ const FullLayout = () => {
         {/* PageContent */}
         {/* ------------------------------------------- */}
         <Box sx={{
-          padding: "20px 24px",
+          padding: "8px 24px",
           flexGrow: 1,
           width: '100%',
           boxSizing: 'border-box',

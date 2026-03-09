@@ -15,6 +15,8 @@ import {
   FormControlLabel,
   Tooltip,
   MenuItem,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { IconCheck, IconX, IconInfoCircle, IconFileSpreadsheet, IconPlayerPlay } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
@@ -26,6 +28,7 @@ import apoioService from '../../services/apoioService';
 import pautistaService from '../../services/pautistaService';
 import escalaService from '../../services/escalaService';
 import { AuthContext } from '../../context/AuthContext';
+import EscalaManualForm from './EscalaManualForm';
 
 const unidadesFederativasOptions = [
   { label: 'TODOS', value: null },
@@ -403,6 +406,9 @@ const EscalaForm = () => {
     setUsuarioOptions([]);
   }, [formData.tipoEscala]);
 
+  // Aba ativa: 0 = Escala Automática, 1 = Escala Manual
+  const [activeTab, setActiveTab] = useState(0);
+
   // Estados para feedback do submit
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -558,7 +564,19 @@ const EscalaForm = () => {
 
   return (
     <PageContainer title="Escala" description="Página de Escala">
-      <DashboardCard title="Escala">
+      <DashboardCard>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="Escala Automática" />
+          <Tab label="Escala Manual" />
+        </Tabs>
+
+        {activeTab === 1 && <EscalaManualForm />}
+
+        {activeTab === 0 && (
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Espécie Tarefa */}
           <Autocomplete
@@ -1159,6 +1177,7 @@ const EscalaForm = () => {
             </Fab>
           </Box>
         </Box>
+        )}
       </DashboardCard>
 
       {/* Dialog para feedback com loading */}

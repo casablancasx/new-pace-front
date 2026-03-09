@@ -68,6 +68,21 @@ const escalaService = {
 
     return api.post('/escala/escalar', payload);
   },
+
+  /**
+   * Escala manual de audiências específicas
+   * @param {Object} payload - EscalaManualDTO
+   * @param {number[]} payload.audiencias - Lista de IDs de audiências
+   * @param {number} payload.usuarioId - ID do usuário
+   * @param {string} payload.tipoEscala - Tipo de escala (AVALIADOR, APOIO, PAUTISTA)
+   * @param {number} payload.setorOrigemId - ID do setor de origem
+   * @param {number} payload.setorDestinoId - ID do setor de destino
+   * @param {Object} payload.especieTarefa - { id, descricao }
+   * @returns {Promise}
+   */
+  async escalarManual(payload) {
+    return api.post('/escala/manual', payload);
+  },
 };
 
 export default escalaService;

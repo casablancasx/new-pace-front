@@ -78,6 +78,17 @@ const usuarioService = {
   },
 
   /**
+   * Edita um usuário (cargo e disponibilidade)
+   * @param {number} sapiensId - ID Sapiens do usuário
+   * @param {string} cargo - Cargo (PROCURADOR, PREPOSTO, OUTROS)
+   * @param {boolean} disponibilidade - Disponibilidade do usuário
+   * @returns {Promise}
+   */
+  async editar(sapiensId, cargo, disponibilidade) {
+    return api.patch('/usuarios', { sapiensId, cargo, disponibilidade });
+  },
+
+  /**
    * Deleta um usuário
    * @param {number} sapiensId - ID Sapiens do usuário
    * @returns {Promise}

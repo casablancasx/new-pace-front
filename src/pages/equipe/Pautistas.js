@@ -25,6 +25,7 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
+  Switch,
   MenuItem,
   Select,
   FormControl,
@@ -36,6 +37,7 @@ import {
   IconUserPlus,
   IconAlertTriangle,
   IconSearch,
+  IconPencil,
 } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import sapiensService from '../../services/sapiensService';
@@ -85,6 +87,14 @@ const Pautistas = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Estado do Dialog de Edição
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [pautistaParaEditar, setPautistaParaEditar] = useState(null);
+  const [editCargo, setEditCargo] = useState('');
+  const [editDisponibilidade, setEditDisponibilidade] = useState(true);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   // Estado do Dialog de Confirmação de Exclusão
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -264,6 +274,39 @@ const Pautistas = () => {
     }
   };
 
+  const handleAbrirEditDialog = (pautista) => {
+    setPautistaParaEditar(pautista);
+    setEditCargo(pautista.cargo || '');
+    setEditDisponibilidade(pautista.disponivel ?? true);
+    setEditError('');
+    setOpenEditDialog(true);
+  };
+
+  const handleFecharEditDialog = () => {
+    setOpenEditDialog(false);
+    setPautistaParaEditar(null);
+    setEditError('');
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!editCargo) {
+      setEditError('Selecione um cargo');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      await usuarioService.editar(pautistaParaEditar.sapiensId, editCargo, editDisponibilidade);
+      setSnackbar({ open: true, message: 'Pautista atualizado com sucesso!', severity: 'success' });
+      handleFecharEditDialog();
+      carregarPautistas();
+    } catch (err) {
+      setEditError(err.message || 'Erro ao atualizar pautista');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleRemoverPautista = (pautista) => {
     setPautistaParaDeletar(pautista);
     setOpenDeleteDialog(true);
@@ -426,6 +469,15 @@ const Pautistas = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
+                    <Tooltip title="Editar">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleAbrirEditDialog(pautista)}
+                      >
+                        <IconPencil size={18} />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Remover">
                       <IconButton
                         size="small"
@@ -666,6 +718,52 @@ const Pautistas = () => {
             disabled={!selectedUser || setoresSelecionados.length === 0 || !cargo || saving}
           >
             {saving ? <CircularProgress size={24} color="inherit" /> : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Edição */}
+      <Dialog
+        open={openEditDialog}
+        onClose={handleFecharEditDialog}
+        TransitionComponent={Transition}
+        keepMounted
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h5" fontWeight={600}>Editar Pautista</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField fullWidth label="Nome" variant="outlined" value={pautistaParaEditar?.nome || ''} disabled />
+            <TextField fullWidth label="Email" variant="outlined" value={pautistaParaEditar?.email || ''} disabled />
+            <FormControl fullWidth required>
+              <InputLabel>Cargo</InputLabel>
+              <Select value={editCargo} onChange={(e) => setEditCargo(e.target.value)} label="Cargo">
+                <MenuItem value="PROCURADOR">Procurador</MenuItem>
+                <MenuItem value="PREPOSTO">Preposto</MenuItem>
+                <MenuItem value="OUTROS">Outros</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editDisponibilidade}
+                  onChange={(e) => setEditDisponibilidade(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Disponível"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button variant="outlined" onClick={handleFecharEditDialog} disabled={editSaving}>Cancelar</Button>
+          <Button variant="contained" onClick={handleSalvarEdicao} disabled={editSaving}>
+            {editSaving ? <CircularProgress size={20} color="inherit" /> : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>

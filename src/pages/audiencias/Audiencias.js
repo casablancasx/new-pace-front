@@ -44,6 +44,7 @@ import sapiensService from '../../services/sapiensService';
 
 // Styled TableRow
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  cursor: 'pointer',
   '&:hover': {
     backgroundColor: theme.palette.action.hover,
   },
@@ -706,22 +707,6 @@ const Audiencias = () => {
                         </Typography>
                       </TableCell>
                     )}
-                    <TableCell
-                      sx={{
-                        position: 'sticky',
-                        right: 0,
-                        backgroundColor: 'background.paper',
-                        zIndex: 1,
-                        minWidth: 96,
-                        textAlign: 'center',
-                        borderLeft: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Typography variant="subtitle2" fontWeight={600}>
-                        Ações
-                      </Typography>
-                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -729,6 +714,11 @@ const Audiencias = () => {
                     audiencias.map((audiencia) => (
                       <StyledTableRow 
                         key={audiencia.audienciaId}
+                        onClick={() => {
+                          if (audiencia?.processoUrl) {
+                            window.open(audiencia.processoUrl, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
                       >
                         {visibleColumns.id && (
                           <TableCell>
@@ -832,48 +822,11 @@ const Audiencias = () => {
                             </Typography>
                           </TableCell>
                         )}
-                        <TableCell
-                          sx={{
-                            position: 'sticky',
-                            right: 0,
-                            backgroundColor: 'background.paper',
-                            zIndex: 1,
-                            borderLeft: '1px solid',
-                            borderColor: 'divider',
-                            textAlign: 'center',
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
-                            <Tooltip title="Ver processo" placement="top">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={(e) => handleVerProcesso(e, audiencia)}
-                                  disabled={!audiencia?.processoUrl}
-                                >
-                                  <IconExternalLink size={16} />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                            {isAdmin && (
-                              <Tooltip title="Escalar manualmente" placement="top">
-                                <IconButton
-                                  size="small"
-                                  color="secondary"
-                                  onClick={(e) => handleAbrirEscalaManual(e, audiencia)}
-                                >
-                                  <IconSettings size={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          </Box>
-                        </TableCell>
                       </StyledTableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={(ALL_COLUMNS.filter(c => visibleColumns[c.id]).length || 1) + 1} align="center">
+                      <TableCell colSpan={ALL_COLUMNS.filter(c => visibleColumns[c.id]).length || 1} align="center">
                         <Typography color="textSecondary" sx={{ py: 3 }}>
                           Nenhuma audiencia encontrada
                         </Typography>
