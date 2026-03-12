@@ -90,7 +90,8 @@ const EscalaManualForm = () => {
       setAudienciaLoading(true);
       try {
         const response = await audienciaService.listar(0, 20, null, audienciaSearchTerm, 'numeroProcesso', 'ASC');
-        setAudienciaOptions(response?.content || []);
+        const content = response?.content || response?.items || response?.data?.content || response?.data?.items || [];
+        setAudienciaOptions(content);
       } catch (err) {
         console.error('Erro ao buscar audiências:', err);
         setAudienciaOptions([]);
@@ -351,6 +352,7 @@ const EscalaManualForm = () => {
         getOptionLabel={(option) => option.numeroProcesso || `Audiência #${option.id}`}
         value={formData.audiencias}
         loading={audienciaLoading}
+        loadingText="Buscando audiências..."
         filterOptions={(x) => x}
         slotProps={{ paper: { placement: 'bottom-start' } }}
         onChange={(event, newValue) => {
@@ -359,6 +361,7 @@ const EscalaManualForm = () => {
         }}
         onInputChange={(event, newInputValue, reason) => {
           if (reason === 'input') setAudienciaSearchTerm(newInputValue);
+          else if (reason === 'reset') setAudienciaSearchTerm('');
         }}
         isOptionEqualToValue={(option, value) => option.id === value.id}
         filterSelectedOptions
