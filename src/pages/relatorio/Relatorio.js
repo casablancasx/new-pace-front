@@ -11,11 +11,11 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TableSortLabel,
   Typography,
   MenuItem,
   Card,
   CardContent,
-  Chip,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
@@ -25,21 +25,15 @@ import { IconSearch, IconFileSpreadsheet } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import relatorioService from '../../services/relatorioService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
+import avaliadorService from '../../services/avaliadorService';
+import pautistaService from '../../services/pautistaService';
+import apoioService from '../../services/apoioService';
 import {
   SUBNUCLEO_OPTIONS,
   TIPO_CONTESTACAO_OPTIONS,
   CLASSE_JUDICIAL_OPTIONS,
   TIPO_ESCALA_OPTIONS,
 } from '../../constants/respostaAnaliseAvaliador';
-
-// Usuários mock para seleção de usuariosIds (substituir por API futuramente)
-const USUARIOS_MOCK = [
-  { id: 2814, nome: 'PAULA SAMPAIO MALINVERNI' },
-  { id: 2815, nome: 'LUIZ AFONSO BARATA PINHEIRO JÚNIOR' },
-  { id: 2816, nome: 'ANA PAULA MENDES' },
-  { id: 2817, nome: 'CARLOS DRUMMOND' },
-  { id: 2818, nome: 'BEATRIZ SOUZA' },
-];
 
 // Tipo Relatório options
 const TIPO_RELATORIO_OPTIONS = [
@@ -74,6 +68,13 @@ const COLUNAS_AUDIENCIA = [
   { id: 'analise', label: 'Análise', field: 'analise' },
   { id: 'dataCadastro', label: 'Data Cadastro', field: 'dataCadastro' },
 ];
+
+const FUNCAO_CORES = {
+  AVALIADOR:   { bg: '#E3F2FD', text: '#1565C0' },
+  PAUTISTA:    { bg: '#E8F5E9', text: '#2E7D32' },
+  AUDIENCISTA: { bg: '#E8F5E9', text: '#2E7D32' },
+  APOIO:       { bg: '#FFF3E0', text: '#E65100' },
+};
 
 // Mapeamento de cores para status de analise
 const ANALISE_CORES = {
@@ -406,6 +407,10 @@ const Relatorio = () => {
   const [orgaoJulgadorSearchTerm, setOrgaoJulgadorSearchTerm] = useState('');
   const [orgaoJulgadorLoading, setOrgaoJulgadorLoading] = useState(false);
 
+  const [usuarioOptions, setUsuarioOptions] = useState([]);
+  const [usuarioSearchTerm, setUsuarioSearchTerm] = useState('');
+  const [usuarioLoading, setUsuarioLoading] = useState(false);
+
   const [resultados, setResultados] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tabelaLoading, setTabelaLoading] = useState(false);
@@ -416,6 +421,16 @@ const Relatorio = () => {
 
   const [metricsData, setMetricsData] = useState(null);
   const [contestacaoTab, setContestacaoTab] = useState('JEF');
+  const [viewContestation, setViewContestation] = useState('tabela');
+  const [viewSubnucleo, setViewSubnucleo] = useState('tabela');
+  const [viewSetores, setViewSetores] = useState('tabela');
+  const [viewTiposAnalise, setViewTiposAnalise] = useState('tabela');
+  const [viewClasseProcessual, setViewClasseProcessual] = useState('tabela');
+  const [viewOrgaosJulgadores, setViewOrgaosJulgadores] = useState('tabela');
+  const [pageOrgaos, setPageOrgaos] = useState(0);
+  const [sortBy, setSortBy] = useState('dataPauta');
+  const [sortDir, setSortDir] = useState('desc');
+  const [buscaCarga, setBuscaCarga] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [excelLoadingAudiencia, setExcelLoadingAudiencia] = useState(false);
   const [excelLoadingPauta, setExcelLoadingPauta] = useState(false);
@@ -451,7 +466,31 @@ const Relatorio = () => {
     }
   };
 
-  const buildFiltros = (pageNum, pageSizeOverride) => ({
+  useEffect(() => {
+    const buscar = async () => {
+      if (!formData.tipoEscala) {
+        setUsuarioOptions([]);
+        return;
+      }
+      setUsuarioLoading(true);
+      try {
+        let results;
+        if (formData.tipoEscala === 'AVALIADOR') results = await avaliadorService.buscar(usuarioSearchTerm);
+        else if (formData.tipoEscala === 'PAUTISTA') results = await pautistaService.buscar(usuarioSearchTerm);
+        else results = await apoioService.buscar(usuarioSearchTerm);
+        setUsuarioOptions(results);
+      } catch (err) {
+        console.error('Erro ao buscar usuários:', err);
+        setUsuarioOptions([]);
+      } finally {
+        setUsuarioLoading(false);
+      }
+    };
+    const timeoutId = setTimeout(buscar, 300);
+    return () => clearTimeout(timeoutId);
+  }, [usuarioSearchTerm, formData.tipoEscala]);
+
+  const buildFiltros = (pageNum, pageSizeOverride, sortByOverride, sortDirOverride) => ({
     page: pageNum,
     size: pageSizeOverride !== undefined ? pageSizeOverride : rowsPerPage,
     dataInicio: formData.dataInicio,
@@ -463,7 +502,9 @@ const Relatorio = () => {
     tipoContestacao: formData.tipoContestacao || null,
     subnucleo: formData.subnucleo || null,
     classeJudicial: formData.classeJudicial || null,
-    usuariosIds: formData.usuariosIds,
+    usuariosIds: formData.usuariosIds.map((u) => u.id),
+    sortBy: sortByOverride ?? sortBy,
+    sortDir: sortDirOverride ?? sortDir,
   });
 
   const handleBuscar = async () => {
@@ -476,6 +517,7 @@ const Relatorio = () => {
     setLoading(true);
     setBuscaRealizada(true);
     setPage(0);
+    setPageOrgaos(0);
     setErrorMessage('');
 
     try {
@@ -509,11 +551,11 @@ const Relatorio = () => {
     }
   };
 
-  const handleBuscarTabela = async (newPage, newRowsPerPage) => {
+  const handleBuscarTabela = async (newPage, newRowsPerPage, newSortBy, newSortDir) => {
     if (!formData.dataInicio || !formData.dataFim) return;
     setTabelaLoading(true);
     try {
-      const filtros = buildFiltros(newPage, newRowsPerPage);
+      const filtros = buildFiltros(newPage, newRowsPerPage, newSortBy, newSortDir);
       let response;
       if (formData.tipoRelatorio === 'ESCALA') {
         response = await relatorioService.buscarEscalaAudiencias(filtros);
@@ -528,6 +570,14 @@ const Relatorio = () => {
     } finally {
       setTabelaLoading(false);
     }
+  };
+
+  const handleSort = (field) => {
+    const newDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'desc';
+    setSortBy(field);
+    setSortDir(newDir);
+    setPage(0);
+    if (buscaRealizada) handleBuscarTabela(0, rowsPerPage, field, newDir);
   };
 
   const handleChangePage = (event, newPage) => handleBuscarTabela(newPage);
@@ -558,15 +608,6 @@ const Relatorio = () => {
     setBuscaRealizada(false);
     setMetricsData(null);
     setErrorMessage('');
-  };
-
-  const handleToggleUsuario = (userId) => {
-    setFormData((prev) => ({
-      ...prev,
-      usuariosIds: prev.usuariosIds.includes(userId)
-        ? prev.usuariosIds.filter((id) => id !== userId)
-        : [...prev.usuariosIds, userId],
-    }));
   };
 
   const handleGerarExcelAudiencia = async () => {
@@ -826,24 +867,33 @@ const Relatorio = () => {
                   />
                 </Box>
                 <Box sx={{ flex: '3 1 calc(75% - 12px)', minWidth: 300 }}>
-                  <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 0.5 }}>
-                    {formData.usuariosIds.length === 0
-                      ? 'Usuários (todos)'
-                      : `Usuários (${formData.usuariosIds.length} selecionado${formData.usuariosIds.length > 1 ? 's' : ''})`}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {USUARIOS_MOCK.map((usuario) => (
-                      <Chip
-                        key={usuario.id}
-                        label={usuario.nome}
-                        onClick={() => handleToggleUsuario(usuario.id)}
-                        color={formData.usuariosIds.includes(usuario.id) ? 'primary' : 'default'}
-                        variant={formData.usuariosIds.includes(usuario.id) ? 'filled' : 'outlined'}
-                        size="small"
-                        clickable
+                  <Autocomplete
+                    multiple
+                    options={usuarioOptions}
+                    getOptionLabel={(option) => option.nome || ''}
+                    value={formData.usuariosIds}
+                    loading={usuarioLoading}
+                    onChange={(_, newValue) => setFormData({ ...formData, usuariosIds: newValue })}
+                    onInputChange={(_, newInputValue) => setUsuarioSearchTerm(newInputValue)}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    filterSelectedOptions
+                    disabled={!formData.tipoEscala}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={formData.tipoEscala ? 'Usuários' : 'Usuários (selecione um tipo de escala)'}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {usuarioLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
                       />
-                    ))}
-                  </Box>
+                    )}
+                  />
                 </Box>
               </Box>
             )}
@@ -958,170 +1008,341 @@ const Relatorio = () => {
             )}
 
             {formData.tipoRelatorio === 'ESCALA' && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <>
+                {/* Distribuição de Carga — full width */}
                 {metricsData.distribuicaoCarga && metricsData.distribuicaoCarga.length > 0 && (
                   <StyledCard>
                     <CardContent sx={{ p: 2 }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Distribuição de Carga</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="h5">Distribuição de Carga</Typography>
+                        <TextField
+                          size="small"
+                          placeholder="Buscar por nome..."
+                          value={buscaCarga}
+                          onChange={(e) => setBuscaCarga(e.target.value)}
+                          sx={{ minWidth: 200 }}
+                        />
+                      </Box>
                       <DataTable
                         columns={[
                           { id: 'nome', label: 'Nome', field: 'nome' },
-                          { id: 'funcao', label: 'Função', field: 'funcao' },
-                          { id: 'cargo', label: 'Cargo', field: 'cargo' },
+                          {
+                            id: 'funcao', label: 'Função', field: 'funcao',
+                            render: (v) => {
+                              const c = FUNCAO_CORES[v] || { bg: '#ECEFF1', text: '#37474F' };
+                              return (
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', px: 1.5, py: 0.5, borderRadius: 3, bgcolor: c.bg, color: c.text, fontSize: 12, fontWeight: 600 }}>
+                                  {v || '-'}
+                                </Box>
+                              );
+                            },
+                          },
+                          {
+                            id: 'cargo', label: 'Cargo', field: 'cargo',
+                            render: (v) => {
+                              const c = FUNCAO_CORES[v] || { bg: '#ECEFF1', text: '#37474F' };
+                              return (
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', px: 1.5, py: 0.5, borderRadius: 3, bgcolor: c.bg, color: c.text, fontSize: 12, fontWeight: 600 }}>
+                                  {v || '-'}
+                                </Box>
+                              );
+                            },
+                          },
                           { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
-                          { id: 'percentualCarga', label: '%', field: 'percentualCarga', align: 'right', render: renderPct },
+                          {
+                            id: 'distribuicao', label: 'Distribuição',
+                            render: (_, row) => {
+                              const max = Math.max(...metricsData.distribuicaoCarga.map((d) => d.totalAudiencias));
+                              const pct = Math.round((row.totalAudiencias / max) * 100);
+                              return (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
+                                  <Box sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: 'divider', overflow: 'hidden' }}>
+                                    <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: 'primary.main', borderRadius: 2 }} />
+                                  </Box>
+                                  <Typography variant="caption" color="textSecondary">{pct}%</Typography>
+                                </Box>
+                              );
+                            },
+                          },
                         ]}
-                        rows={metricsData.distribuicaoCarga}
+                        rows={metricsData.distribuicaoCarga.filter((d) => !buscaCarga || d.nome?.toLowerCase().includes(buscaCarga.toLowerCase()))}
                       />
                     </CardContent>
                   </StyledCard>
                 )}
 
-                {metricsData.tiposContestacao && (
-                  <StyledCard>
-                    <CardContent sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                        <Typography variant="h5">Tipo de Contestação</Typography>
-                        <ToggleButtonGroup
-                          value={contestacaoTab}
-                          exclusive
-                          onChange={(_, val) => val && setContestacaoTab(val)}
-                          size="small"
-                        >
-                          <ToggleButton value="JEF">JEF</ToggleButton>
-                          <ToggleButton value="COMUM">Comum</ToggleButton>
-                          <ToggleButton value="CONSOLIDADO">JEF+Comum</ToggleButton>
-                        </ToggleButtonGroup>
-                      </Box>
-                      {getContestacaoItems().length > 0 ? (
-                        <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
-                      ) : (
-                        <Typography color="textSecondary" sx={{ py: 2 }}>Sem dados para este filtro</Typography>
-                      )}
-                    </CardContent>
-                  </StyledCard>
-                )}
-
-                {((metricsData.subnucleos && metricsData.subnucleos.length > 0) ||
-                  (metricsData.setores && metricsData.setores.length > 0)) && (
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {metricsData.subnucleos && metricsData.subnucleos.length > 0 && (
-                      <StyledCard sx={{ flex: 1, minWidth: 280 }}>
+                {/* Tipo de Contestação + Subnúcleo lado a lado */}
+                {(metricsData.tiposContestacao || (metricsData.subnucleos && metricsData.subnucleos.length > 0)) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.tiposContestacao && (
+                      <StyledCard>
                         <CardContent sx={{ p: 2 }}>
-                          <Typography variant="h5" sx={{ mb: 1.5 }}>Subnúcleo</Typography>
-                          <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Tipo de Contestação</Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <ToggleButtonGroup value={contestacaoTab} exclusive onChange={(_, val) => val && setContestacaoTab(val)} size="small">
+                                <ToggleButton value="JEF">JEF</ToggleButton>
+                                <ToggleButton value="COMUM">Comum</ToggleButton>
+                                <ToggleButton value="CONSOLIDADO">JEF+Comum</ToggleButton>
+                              </ToggleButtonGroup>
+                              <ToggleButtonGroup value={viewContestation} exclusive onChange={(_, val) => val && setViewContestation(val)} size="small">
+                                <ToggleButton value="tabela">Tabela</ToggleButton>
+                                <ToggleButton value="grafico">Gráfico</ToggleButton>
+                              </ToggleButtonGroup>
+                            </Box>
+                          </Box>
+                          {getContestacaoItems().length > 0 ? (
+                            viewContestation === 'tabela' ? (
+                              <DataTable
+                                columns={[
+                                  { id: 'descricao', label: 'Contestação', field: 'descricao' },
+                                  { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                  { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                                ]}
+                                rows={getContestacaoItems()}
+                              />
+                            ) : (
+                              <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
+                            )
+                          ) : (
+                            <Typography color="textSecondary" sx={{ py: 2 }}>Sem dados para este filtro</Typography>
+                          )}
                         </CardContent>
                       </StyledCard>
                     )}
-                    {metricsData.setores && metricsData.setores.length > 0 && (
-                      <StyledCard sx={{ flex: 1, minWidth: 280 }}>
+                    {metricsData.subnucleos && metricsData.subnucleos.length > 0 && (
+                      <StyledCard>
                         <CardContent sx={{ p: 2 }}>
-                          <Typography variant="h5" sx={{ mb: 1.5 }}>Setores</Typography>
-                          <DataTable
-                            columns={[
-                              { id: 'nome', label: 'Setor', field: 'nome' },
-                              { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
-                              { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
-                            ]}
-                            rows={metricsData.setores}
-                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Subnúcleo</Typography>
+                            <ToggleButtonGroup value={viewSubnucleo} exclusive onChange={(_, val) => val && setViewSubnucleo(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewSubnucleo === 'tabela' ? (
+                            <DataTable
+                              columns={[
+                                { id: 'descricao', label: 'Subnúcleo', field: 'descricao' },
+                                { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                { id: 'percentualDoTotal', label: '%', field: 'percentualDoTotal', align: 'right', render: renderPct },
+                              ]}
+                              rows={metricsData.subnucleos}
+                            />
+                          ) : (
+                            <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />
+                          )}
                         </CardContent>
                       </StyledCard>
                     )}
                   </Box>
                 )}
 
-                {metricsData.tiposAnalise && metricsData.tiposAnalise.length > 0 && (
-                  <StyledCard>
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Tipo de Análise</Typography>
-                      <DataTable
-                        columns={[
-                          { id: 'descricao', label: 'Análise', field: 'descricao' },
-                          { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
-                          { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
-                        ]}
-                        rows={metricsData.tiposAnalise}
-                      />
-                    </CardContent>
-                  </StyledCard>
+                {/* Setores + Tipo de Análise lado a lado */}
+                {((metricsData.setores && metricsData.setores.length > 0) || (metricsData.tiposAnalise && metricsData.tiposAnalise.length > 0)) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.setores && metricsData.setores.length > 0 && (
+                      <StyledCard>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Setores</Typography>
+                            <ToggleButtonGroup value={viewSetores} exclusive onChange={(_, val) => val && setViewSetores(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewSetores === 'tabela' ? (
+                            <DataTable
+                              columns={[
+                                { id: 'nome', label: 'Setor', field: 'nome' },
+                                { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                              ]}
+                              rows={metricsData.setores}
+                            />
+                          ) : (
+                            <BarChart items={metricsData.setores} labelField="nome" valueField="totalAudiencias" />
+                          )}
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                    {metricsData.tiposAnalise && metricsData.tiposAnalise.length > 0 && (
+                      <StyledCard>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Tipo de Análise</Typography>
+                            <ToggleButtonGroup value={viewTiposAnalise} exclusive onChange={(_, val) => val && setViewTiposAnalise(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewTiposAnalise === 'tabela' ? (
+                            <DataTable
+                              columns={[
+                                { id: 'descricao', label: 'Análise', field: 'descricao', render: (v) => <AnalysisChip value={v} /> },
+                                { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                              ]}
+                              rows={metricsData.tiposAnalise}
+                            />
+                          ) : (
+                            <BarChart items={metricsData.tiposAnalise} labelField="descricao" valueField="totalAudiencias" />
+                          )}
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                  </Box>
                 )}
-              </Box>
+              </>
             )}
 
             {formData.tipoRelatorio === 'AUDIENCIA' && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {metricsData.porClasseProcessual && (
-                  <StyledCard>
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Classe Processual</Typography>
-                      <DataTable
-                        columns={[
-                          { id: 'classe', label: 'Classe', field: 'classe' },
-                          { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
-                          { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
-                        ]}
-                        rows={Object.entries(metricsData.porClasseProcessual).map(([classe, data]) => ({ classe, ...data }))}
-                      />
-                    </CardContent>
-                  </StyledCard>
-                )}
-
-                {metricsData.tiposContestacao && (
-                  <StyledCard>
-                    <CardContent sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                        <Typography variant="h5">Tipo de Contestação</Typography>
-                        <ToggleButtonGroup
-                          value={contestacaoTab}
-                          exclusive
-                          onChange={(_, val) => val && setContestacaoTab(val)}
-                          size="small"
-                        >
-                          <ToggleButton value="JEF">JEF</ToggleButton>
-                          <ToggleButton value="COMUM">Comum</ToggleButton>
-                          <ToggleButton value="CONSOLIDADO">JEF+Comum</ToggleButton>
-                        </ToggleButtonGroup>
-                      </Box>
-                      {getContestacaoItems().length > 0 ? (
-                        <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
-                      ) : (
-                        <Typography color="textSecondary" sx={{ py: 2 }}>Sem dados para este filtro</Typography>
-                      )}
-                    </CardContent>
-                  </StyledCard>
-                )}
-
-                {((metricsData.orgaosJulgadores && metricsData.orgaosJulgadores.length > 0) ||
-                  (metricsData.subnucleos && metricsData.subnucleos.length > 0)) && (
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {metricsData.orgaosJulgadores && metricsData.orgaosJulgadores.length > 0 && (
-                      <StyledCard sx={{ flex: 1, minWidth: 280 }}>
+              <>
+                {/* Classe Processual + Tipo de Contestação lado a lado */}
+                {(metricsData.porClasseProcessual || metricsData.tiposContestacao) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.porClasseProcessual && (
+                      <StyledCard>
                         <CardContent sx={{ p: 2 }}>
-                          <Typography variant="h5" sx={{ mb: 1.5 }}>Órgãos Julgadores</Typography>
-                          <DataTable
-                            columns={[
-                              { id: 'nome', label: 'Nome', field: 'nome' },
-                              { id: 'uf', label: 'UF', field: 'uf', align: 'center' },
-                              { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
-                              { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
-                            ]}
-                            rows={metricsData.orgaosJulgadores}
-                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Classe Processual</Typography>
+                            <ToggleButtonGroup value={viewClasseProcessual} exclusive onChange={(_, val) => val && setViewClasseProcessual(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewClasseProcessual === 'tabela' ? (
+                            <DataTable
+                              columns={[
+                                { id: 'classe', label: 'Classe', field: 'classe' },
+                                { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                              ]}
+                              rows={Object.entries(metricsData.porClasseProcessual).map(([classe, data]) => ({ classe, ...data }))}
+                            />
+                          ) : (
+                            <DonutChart
+                              items={Object.entries(metricsData.porClasseProcessual).map(([classe, data]) => ({ classe, ...data }))}
+                              labelField="classe"
+                              valueField="totalAudiencias"
+                            />
+                          )}
                         </CardContent>
                       </StyledCard>
                     )}
-                    {metricsData.subnucleos && metricsData.subnucleos.length > 0 && (
-                      <StyledCard sx={{ flex: 1, minWidth: 280 }}>
+                    {metricsData.tiposContestacao && (
+                      <StyledCard>
                         <CardContent sx={{ p: 2 }}>
-                          <Typography variant="h5" sx={{ mb: 1.5 }}>Subnúcleo</Typography>
-                          <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Tipo de Contestação</Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <ToggleButtonGroup value={contestacaoTab} exclusive onChange={(_, val) => val && setContestacaoTab(val)} size="small">
+                                <ToggleButton value="JEF">JEF</ToggleButton>
+                                <ToggleButton value="COMUM">Comum</ToggleButton>
+                                <ToggleButton value="CONSOLIDADO">JEF+Comum</ToggleButton>
+                              </ToggleButtonGroup>
+                              <ToggleButtonGroup value={viewContestation} exclusive onChange={(_, val) => val && setViewContestation(val)} size="small">
+                                <ToggleButton value="tabela">Tabela</ToggleButton>
+                                <ToggleButton value="grafico">Gráfico</ToggleButton>
+                              </ToggleButtonGroup>
+                            </Box>
+                          </Box>
+                          {getContestacaoItems().length > 0 ? (
+                            viewContestation === 'tabela' ? (
+                              <DataTable
+                                columns={[
+                                  { id: 'descricao', label: 'Contestação', field: 'descricao' },
+                                  { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                  { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                                ]}
+                                rows={getContestacaoItems()}
+                              />
+                            ) : (
+                              <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
+                            )
+                          ) : (
+                            <Typography color="textSecondary" sx={{ py: 2 }}>Sem dados para este filtro</Typography>
+                          )}
                         </CardContent>
                       </StyledCard>
                     )}
                   </Box>
                 )}
-              </Box>
+
+                {/* Órgãos Julgadores + Subnúcleo lado a lado */}
+                {((metricsData.orgaosJulgadores && metricsData.orgaosJulgadores.length > 0) ||
+                  (metricsData.subnucleos && metricsData.subnucleos.length > 0)) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.orgaosJulgadores && metricsData.orgaosJulgadores.length > 0 && (
+                      <StyledCard>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">
+                              Órgãos Julgadores
+                              <Typography component="span" variant="caption" color="textSecondary" sx={{ ml: 1 }}>
+                                ({metricsData.orgaosJulgadores.length} total)
+                              </Typography>
+                            </Typography>
+                            <ToggleButtonGroup value={viewOrgaosJulgadores} exclusive onChange={(_, val) => val && setViewOrgaosJulgadores(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewOrgaosJulgadores === 'tabela' ? (
+                            <>
+                              <DataTable
+                                columns={[
+                                  { id: 'nome', label: 'Nome', field: 'nome' },
+                                  { id: 'uf', label: 'UF', field: 'uf', align: 'center' },
+                                  { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                  { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+                                ]}
+                                rows={metricsData.orgaosJulgadores.slice(pageOrgaos * 10, pageOrgaos * 10 + 10)}
+                              />
+                              <TablePagination
+                                component="div"
+                                count={metricsData.orgaosJulgadores.length}
+                                page={pageOrgaos}
+                                onPageChange={(_, p) => setPageOrgaos(p)}
+                                rowsPerPage={10}
+                                rowsPerPageOptions={[10]}
+                                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+                              />
+                            </>
+                          ) : (
+                            <BarChart items={metricsData.orgaosJulgadores.slice(pageOrgaos * 10, pageOrgaos * 10 + 10)} labelField="nome" valueField="totalAudiencias" />
+                          )}
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                    {metricsData.subnucleos && metricsData.subnucleos.length > 0 && (
+                      <StyledCard>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Typography variant="h5">Subnúcleo</Typography>
+                            <ToggleButtonGroup value={viewSubnucleo} exclusive onChange={(_, val) => val && setViewSubnucleo(val)} size="small">
+                              <ToggleButton value="tabela">Tabela</ToggleButton>
+                              <ToggleButton value="grafico">Gráfico</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+                          {viewSubnucleo === 'tabela' ? (
+                            <DataTable
+                              columns={[
+                                { id: 'descricao', label: 'Subnúcleo', field: 'descricao' },
+                                { id: 'totalAudiencias', label: 'Audiências', field: 'totalAudiencias', align: 'right', render: renderNum },
+                                { id: 'percentualDoTotal', label: '%', field: 'percentualDoTotal', align: 'right', render: renderPct },
+                              ]}
+                              rows={metricsData.subnucleos}
+                            />
+                          ) : (
+                            <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />
+                          )}
+                        </CardContent>
+                      </StyledCard>
+                    )}
+                  </Box>
+                )}
+              </>
             )}
 
             <ReportCard title={formData.tipoRelatorio === 'ESCALA' ? 'Audiências de Escala' : 'Audiências'}>
@@ -1142,7 +1363,13 @@ const Relatorio = () => {
                     <TableRow>
                       {colunas.map((col) => (
                         <TableCell key={col.id} align="center">
-                          <Typography variant="subtitle2" fontWeight={600}>{col.label}</Typography>
+                          <TableSortLabel
+                            active={sortBy === col.field}
+                            direction={sortBy === col.field ? sortDir : 'desc'}
+                            onClick={() => handleSort(col.field)}
+                          >
+                            <Typography variant="subtitle2" fontWeight={600}>{col.label}</Typography>
+                          </TableSortLabel>
                         </TableCell>
                       ))}
                     </TableRow>
