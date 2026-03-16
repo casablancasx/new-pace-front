@@ -2,7 +2,7 @@ import api from './api';
 
 const relatorioService = {
   /**
-   * Monta os parâmetros comuns para os relatórios
+   * Monta os parâmetros comuns para os relatórios (legado)
    * @param {Object} filtros - Filtros da busca
    * @param {boolean} includeView - Se deve incluir o parâmetro view (default: false)
    */
@@ -42,6 +42,95 @@ const relatorioService = {
     }
     
     return params;
+  },
+
+  /**
+   * Monta parâmetros para endpoints de escala (novos)
+   */
+  _montarParametrosEscala(filtros) {
+    const params = new URLSearchParams();
+    if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio);
+    if (filtros.dataFim) params.append('dataFim', filtros.dataFim);
+    if (filtros.dataEscala) params.append('dataEscala', filtros.dataEscala);
+    if (filtros.tipoRelatorio) params.append('tipoRelatorio', filtros.tipoRelatorio);
+    if (filtros.tipoEscala) params.append('tipoEscala', filtros.tipoEscala);
+    if (filtros.tipoContestacao) params.append('tipoContestacao', filtros.tipoContestacao);
+    if (filtros.orgaoJulgador) params.append('orgaoJulgador', filtros.orgaoJulgador.toString());
+    if (filtros.classeJudicial) params.append('classeJudicial', filtros.classeJudicial);
+    if (filtros.subnucleo) params.append('subnucleo', filtros.subnucleo);
+    if (filtros.usuariosIds && filtros.usuariosIds.length > 0) {
+      filtros.usuariosIds.forEach((id) => params.append('usuariosIds', id.toString()));
+    }
+    return params;
+  },
+
+  /**
+   * Monta parâmetros para endpoints de audiência (novos)
+   */
+  _montarParametrosAudiencia(filtros) {
+    const params = new URLSearchParams();
+    if (filtros.dataInicio) params.append('dataInicio', filtros.dataInicio);
+    if (filtros.dataFim) params.append('dataFim', filtros.dataFim);
+    if (filtros.tipoRelatorio) params.append('tipoRelatorio', filtros.tipoRelatorio);
+    if (filtros.orgaoJulgador) params.append('orgaoJulgador', filtros.orgaoJulgador.toString());
+    if (filtros.classeJudicial) params.append('classeJudicial', filtros.classeJudicial);
+    return params;
+  },
+
+  /**
+   * Busca métricas agregadas do relatório de Escala
+   * GET /relatorio/escala/metrics
+   */
+  async buscarEscalaMetrics(filtros) {
+    const params = this._montarParametrosEscala(filtros);
+    return api.get(`/relatorio/escala/metrics?${params.toString()}`);
+  },
+
+  /**
+   * Busca lista paginada de audiências de escala
+   * GET /relatorio/escala/audiencias
+   */
+  async buscarEscalaAudiencias(filtros) {
+    const params = this._montarParametrosEscala(filtros);
+    params.append('page', (filtros.page || 0).toString());
+    params.append('size', (filtros.size || 10).toString());
+    if (filtros.sortBy) params.append('sortBy', filtros.sortBy);
+    if (filtros.sortDir) params.append('sortDir', filtros.sortDir);
+    const response = await api.get(`/relatorio/escala/audiencias?${params.toString()}`);
+    const pageInfo = response.page || {};
+    return {
+      content: response.content || [],
+      totalPages: pageInfo.totalPages || response.totalPages || 1,
+      totalElements: pageInfo.totalElements || response.totalElements || 0,
+    };
+  },
+
+  /**
+   * Busca métricas agregadas do relatório de Audiência
+   * GET /relatorio/audiencia/metrics
+   */
+  async buscarAudienciaMetrics(filtros) {
+    const params = this._montarParametrosAudiencia(filtros);
+    return api.get(`/relatorio/audiencia/metrics?${params.toString()}`);
+  },
+
+  /**
+   * Busca lista paginada de audiências para relatório de Audiência
+   * GET /relatorio/audiencias/listar
+   */
+  async buscarAudienciasListar(filtros) {
+    const params = this._montarParametrosAudiencia(filtros);
+    params.append('page', (filtros.page || 0).toString());
+    params.append('size', (filtros.size || 10).toString());
+    if (filtros.sortBy) params.append('sortBy', filtros.sortBy);
+    if (filtros.sortDir) params.append('sortDir', filtros.sortDir);
+    const response = await api.get(`/relatorio/audiencias/listar?${params.toString()}`);
+    const pageInfo = response.page || {};
+    return {
+      content: response.content || [],
+      totalPages: pageInfo.totalPages || response.totalPages || 1,
+      totalElements: pageInfo.totalElements || response.totalElements || 0,
+    };
   },
 
   /**
