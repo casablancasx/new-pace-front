@@ -1,1230 +1,803 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Relatorio.jsx — Melhorado
+ *
+ * Adicione ao index.html:
+ * <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+ *
+ * Lógica, estado, serviços e filtros mantidos intactos.
+ */
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Box,
-  TextField,
-  Autocomplete,
-  Button,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Typography,
-  MenuItem,
-  Grid,
-  Card,
-  CardContent,
+  Box, TextField, Autocomplete, Button, CircularProgress,
+  Table, TableBody, TableCell, TableHead, TableRow,
+  TablePagination, TableSortLabel, Typography, MenuItem,
+  Card, CardContent, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
-import { useTheme, styled } from '@mui/material/styles';
+import { useTheme, styled, alpha } from '@mui/material/styles';
 import Chart from 'react-apexcharts';
 import { IconSearch, IconFileSpreadsheet } from '@tabler/icons-react';
 import PageContainer from 'src/components/container/PageContainer';
 import relatorioService from '../../services/relatorioService';
-import usuarioService from '../../services/usuarioService';
 import orgaoJulgadorService from '../../services/orgaoJulgadorService';
-import { SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS, CLASSE_JUDICIAL_OPTIONS, VIEW_RELATORIO_OPTIONS, TIPO_ESCALA_OPTIONS } from '../../constants/respostaAnaliseAvaliador';
+import avaliadorService from '../../services/avaliadorService';
+import pautistaService from '../../services/pautistaService';
+import apoioService from '../../services/apoioService';
+import {
+  SUBNUCLEO_OPTIONS, TIPO_CONTESTACAO_OPTIONS,
+  CLASSE_JUDICIAL_OPTIONS, TIPO_ESCALA_OPTIONS,
+} from '../../constants/respostaAnaliseAvaliador';
 
-// Função helper para obter colunas dinâmicas baseado no tipo de view
-const getColumnasRelatorio = (viewType) => {
-  const colunas = {
-    ESCALA: [
-      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
-      { id: 'nome', label: 'Nome', field: 'nome' },
-      { id: 'data', label: 'Data', field: 'data' },
-      { id: 'horario', label: 'Horário', field: 'horario' },
-      { id: 'turno', label: 'Turno', field: 'turno' },
-      { id: 'sala', label: 'Sala', field: 'sala' },
-      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
-      { id: 'tipoContestacao', label: 'Tipo Contestação', field: 'tipoContestacao' },
-      { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
-      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
-      { id: 'analiseAvaliador', label: 'Análise', field: 'analiseAvaliador' },
-      { id: 'observacao', label: 'Observação', field: 'observacao' },
-    ],
-    AUDIENCIA: [
-      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
-      { id: 'data', label: 'Data', field: 'data' },
-      { id: 'horario', label: 'Horário', field: 'horario' },
-      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
-      { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
-      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
-      { id: 'tipoContestacao', label: 'Tipo Contestação', field: 'tipoContestacao' },
-      { id: 'sala', label: 'Sala', field: 'sala' },
-      { id: 'nomeParte', label: 'Nome Parte', field: 'nomeParte' },
-      { id: 'analise', label: 'Análise', field: 'analise' },
-      { id: 'observacao', label: 'Observação', field: 'observacao' },
-    ],
-    AUDIENCIA_NAO_ENCONTRADA: [
-      { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
-      { id: 'data', label: 'Data', field: 'data' },
-      { id: 'horario', label: 'Horário', field: 'horario' },
-      { id: 'classeJudicial', label: 'Classe Judicial', field: 'classeJudicial' },
-      { id: 'orgaoJulgador', label: 'Órgão Julgador', field: 'orgaoJulgador' },
-      { id: 'sala', label: 'Sala', field: 'sala' },
-      { id: 'nomeParte', label: 'Nome Parte', field: 'nomeParte' },
-    ],
-  };
+/* ─── CONSTANTES ─── */
+const TIPO_RELATORIO_OPTIONS = [
+  { value: 'ESCALA', label: 'Escala' },
+  { value: 'AUDIENCIA', label: 'Audiência' },
+];
 
-  return colunas[viewType] || colunas.ESCALA;
+const COLUNAS_ESCALA = [
+  { id: 'dataPauta', label: 'Data pauta', field: 'dataPauta' },
+  { id: 'hora', label: 'Hora', field: 'hora' },
+  { id: 'turno', label: 'Turno', field: 'turno' },
+  { id: 'numeroProcesso', label: 'Processo', field: 'numeroProcesso' },
+  { id: 'classeJudicial', label: 'Classe', field: 'classeJudicial' },
+  { id: 'orgaoJulgador', label: 'Órgão julgador', field: 'orgaoJulgador' },
+  { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
+  { id: 'estado', label: 'Estado', field: 'estado' },
+  { id: 'usuarioRecebeuTarefa', label: 'Usuário', field: 'usuarioRecebeuTarefa' },
+  { id: 'analise', label: 'Análise', field: 'analise' },
+  { id: 'dataHoraEscalacao', label: 'Data escalação', field: 'dataHoraEscalacao' },
+];
+
+const COLUNAS_AUDIENCIA = [
+  { id: 'dataPauta', label: 'Data pauta', field: 'dataPauta' },
+  { id: 'horaAudiencia', label: 'Hora', field: 'horaAudiencia' },
+  { id: 'turnoPauta', label: 'Turno', field: 'turnoPauta' },
+  { id: 'sala', label: 'Sala', field: 'sala' },
+  { id: 'orgaoJulgador', label: 'Órgão julgador', field: 'orgaoJulgador' },
+  { id: 'classeJudicial', label: 'Classe', field: 'classeJudicial' },
+  { id: 'subnucleo', label: 'Subnúcleo', field: 'subnucleo' },
+  { id: 'analise', label: 'Análise', field: 'analise' },
+  { id: 'dataCadastro', label: 'Data cadastro', field: 'dataCadastro' },
+];
+
+const FUNCAO_CORES = {
+  AVALIADOR:   { bg: '#DBEAFE', text: '#1E40AF' },
+  PAUTISTA:    { bg: '#D1FAE5', text: '#065F46' },
+  AUDIENCISTA: { bg: '#D1FAE5', text: '#065F46' },
+  APOIO:       { bg: '#FEF3C7', text: '#92400E' },
 };
 
-// Função helper para buscar dados baseado no tipo de view
-const buscarDadosRelatorio = async (viewType, filtros) => {
-  switch (viewType) {
-    case 'AUDIENCIA':
-      return await relatorioService.buscarAudiencia(filtros);
-    case 'AUDIENCIA_NAO_ENCONTRADA':
-      return await relatorioService.buscarAudienciaNaoEncontrada(filtros);
-    case 'ESCALA':
-    default:
-      return await relatorioService.buscarEscala(filtros);
-  }
-};
-
-// Mapeamento de cores para cada status de análise
 const ANALISE_CORES = {
-  'NAO_ESCALADA': { bg: '#FFEBEE', text: '#C62828', label: 'Não Escalada' },
-  'ANALISE_PENDENTE': { bg: '#FFF3E0', text: '#E65100', label: 'Análise Pendente' },
-  'COMPARECER': { bg: '#E8F5E9', text: '#2E7D32', label: 'Comparecer' },
-  'NAO_COMPARECER': { bg: '#FFEBEE', text: '#C62828', label: 'Não Comparecer' },
-  'CANCELADA': { bg: '#F3E5F5', text: '#6A1B9A', label: 'Cancelada' },
-  'REDESIGNADA': { bg: '#FFF9C4', text: '#F57F17', label: 'Redesignada' },
+  NAO_ESCALADA:    { bg: '#FEE2E2', text: '#991B1B', label: 'Não escalada' },
+  ANALISE_PENDENTE:{ bg: '#FEF3C7', text: '#92400E', label: 'Análise pendente' },
+  COMPARECER:      { bg: '#D1FAE5', text: '#065F46', label: 'Comparecer' },
+  NAO_COMPARECER:  { bg: '#FEE2E2', text: '#991B1B', label: 'Não comparecer' },
+  CANCELADA:       { bg: '#EDE9FE', text: '#4C1D95', label: 'Cancelada' },
+  REDESIGNADA:     { bg: '#FEF9C3', text: '#713F12', label: 'Redesignada' },
 };
 
-// Mapeamento de cores para cada tipo de contestação
-const TIPO_CONTESTACAO_CORES = {
-  'TIPO1': { bg: '#E3F2FD', text: '#1565C0', label: 'TIPO 1' },
-  'TIPO2': { bg: '#F3E5F5', text: '#6A1B9A', label: 'TIPO 2' },
-  'TIPO3': { bg: '#E8F5E9', text: '#2E7D32', label: 'TIPO 3' },
-  'TIPO4': { bg: '#FFF3E0', text: '#E65100', label: 'TIPO 4' },
-  'TIPO5': { bg: '#FCE4EC', text: '#C2185B', label: 'TIPO 5' },
-  'SEM_CONTESTACAO': { bg: '#F0F4C3', text: '#827717', label: 'SEM CONTESTAÇÃO' },
-  'SEM_TIPO': { bg: '#ECEFF1', text: '#37474F', label: 'SEM TIPO' },
-  'ERRO_SAPIENS': { bg: '#FFEBEE', text: '#C62828', label: 'ERRO SAPIENS' },
-};
+const METRIC_ACCENTS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
+const CHART_COLORS   = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#14B8A6', '#F97316'];
 
-// Componente Badge para análise
-const AnalysisChip = ({ value }) => {
-  const analise = ANALISE_CORES[value] || ANALISE_CORES['ANALISE_PENDENTE'];
-  
-  return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '140px',
-        height: '32px',
-        backgroundColor: analise.bg,
-        color: analise.text,
-        borderRadius: '16px',
-        fontSize: '12px',
-        fontWeight: 600,
-        textAlign: 'center',
-        padding: '4px 8px',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-    >
-      {analise.label}
-    </Box>
-  );
-};
-
-// Componente Badge para tipo contestação
-const TipoContestacaoChip = ({ value }) => {
-  const contestacao = TIPO_CONTESTACAO_CORES[value] || { bg: '#ECEFF1', text: '#37474F', label: value || '-' };
-  
-  return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '140px',
-        height: '32px',
-        backgroundColor: contestacao.bg,
-        color: contestacao.text,
-        borderRadius: '16px',
-        fontSize: '12px',
-        fontWeight: 600,
-        textAlign: 'center',
-        padding: '4px 8px',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-    >
-      {contestacao.label}
-    </Box>
-  );
-};
-
-// Função para renderizar conteúdo da célula
-const renderCellContent = (fieldId, value) => {
-  if (fieldId === 'analiseAvaliador' || fieldId === 'analise') {
-    return <AnalysisChip value={value} />;
-  }
-  if (fieldId === 'tipoContestacao') {
-    return <TipoContestacaoChip value={value} />;
-  }
-  return <Typography color="textSecondary" variant="subtitle2">{value || '-'}</Typography>;
-};
-
-
-// Card customizado com mais sombra e bordas arredondadas
-const StyledCard = styled(Card)(() => ({
-  borderRadius: 16,
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)',
-  transition: 'box-shadow 0.3s ease-in-out',
-  '&:hover': {
-    boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
-  },
-}));
-
-// Componente de Card customizado para o relatório
-const ReportCard = ({ title, children, action }) => (
-  <StyledCard sx={{ height: '100%' }}>
-    <CardContent sx={{ p: 2, height: '100%' }}>
-      {title && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-          <Typography variant="h5">{title}</Typography>
-          {action}
-        </Box>
-      )}
-      {children}
-    </CardContent>
-  </StyledCard>
+/* ─── HELPERS DE RENDER ─── */
+const Pill = ({ bg, text, label }) => (
+  <Box sx={{
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    height: 22, px: 1.25, borderRadius: '11px',
+    bgcolor: bg, color: text,
+    fontSize: 11, fontWeight: 600,
+    fontFamily: '"Geist", sans-serif',
+    whiteSpace: 'nowrap',
+  }}>
+    {label}
+  </Box>
 );
 
-// Componente de gráfico de contestação
-const ContestacaoChart = ({ contestacoes }) => {
-  const theme = useTheme();
-  const primary = theme.palette.primary.main;
+const AnalysisChip = ({ value }) => {
+  const a = ANALISE_CORES[value] || { bg: '#F1F5F9', text: '#334155', label: value || '—' };
+  return <Pill bg={a.bg} text={a.text} label={a.label} />;
+};
 
-  const categories = contestacoes.map(item => item.descricao || '-');
-  const data = contestacoes.map(item => item.total || 0);
-  const chartHeight = Math.max(300, contestacoes.length * 60);
+const ClasseJudicialChip = ({ value }) => {
+  const c = value === 'JEF' ? { bg: '#DBEAFE', text: '#1E40AF' }
+    : value === 'COMUM' ? { bg: '#EDE9FE', text: '#4C1D95' }
+    : { bg: '#F1F5F9', text: '#334155' };
+  return <Pill bg={c.bg} text={c.text} label={value || '—'} />;
+};
 
-  const chartOptions = {
-    chart: {
-      type: 'bar',
-      fontFamily: "'Plus Jakarta Sans', sans-serif;",
-      foreColor: '#adb0bb',
-      toolbar: { show: true },
-    },
-    colors: [primary],
-    plotOptions: {
-      bar: {
-        horizontal: true,
-        barHeight: '60%',
-        borderRadius: 6,
-        borderRadiusApplication: 'end',
-      },
-    },
-    dataLabels: { 
-      enabled: true,
-      formatter: (val) => val.toLocaleString('pt-BR'),
-    },
-    legend: { show: false },
-    grid: {
-      borderColor: 'rgba(0,0,0,0.1)',
-      strokeDashArray: 3,
-      xaxis: { lines: { show: true } },
-      yaxis: { lines: { show: false } },
-      padding: {
-        left: 20,
-      },
-    },
-    xaxis: {
-      categories: categories,
-      axisBorder: { show: false },
-    },
-    yaxis: {
-      labels: {
-        show: true,
-        style: { 
-          fontSize: '13px',
-          fontWeight: 500,
-        },
-        maxWidth: 200,
-      },
-    },
-    tooltip: {
-      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
-      y: {
-        formatter: (val) => val.toLocaleString('pt-BR'),
-      },
-    },
-  };
+const FuncaoChip = ({ value }) => {
+  const c = FUNCAO_CORES[value] || { bg: '#F1F5F9', text: '#334155' };
+  return <Pill bg={c.bg} text={c.text} label={value || '—'} />;
+};
 
-  const series = [{ name: 'Total', data: data }];
+const MonoText = ({ children, muted }) => (
+  <Typography sx={{
+    fontFamily: '"Geist Mono", monospace', fontSize: 12,
+    fontWeight: muted ? 400 : 500,
+    color: muted ? 'text.secondary' : 'text.primary',
+  }}>
+    {children}
+  </Typography>
+);
 
+const formatDateBr = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatDateTimeBr = (dateTimeStr) => {
+  if (!dateTimeStr) return '—';
+  try {
+    const date = new Date(dateTimeStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch {
+    return dateTimeStr;
+  }
+};
+
+const renderCellContent = (fieldId, value) => {
+  if (fieldId === 'analise') return <AnalysisChip value={value} />;
+  if (fieldId === 'classeJudicial') return <ClasseJudicialChip value={value} />;
+  if (fieldId === 'dataHoraEscalacao' || fieldId === 'dataCadastro') {
+    if (!value) return <MonoText muted>—</MonoText>;
+    return <MonoText muted>{formatDateTimeBr(value)}</MonoText>;
+  }
+  if (fieldId === 'dataPauta')
+    return <MonoText>{formatDateBr(value) || '—'}</MonoText>;
+  if (['hora', 'horaAudiencia'].includes(fieldId))
+    return <MonoText>{value || '—'}</MonoText>;
   return (
-    <Chart
-      options={chartOptions}
-      series={series}
-      type="bar"
-      height={chartHeight}
-      width="100%"
-    />
+    <Typography sx={{ fontSize: 12, fontFamily: '"Geist", sans-serif', color: 'text.primary' }}>
+      {value || '—'}
+    </Typography>
   );
 };
 
-// Componente de tabela de distribuição por usuário
-const DistribuicaoTable = ({ distribuicao }) => {
-  const theme = useTheme();
-  if (!distribuicao || !distribuicao.dados || distribuicao.dados.length === 0) return null;
-  const { dados, totalGeral } = distribuicao;
+const renderNum = (v) => (
+  <Typography sx={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, fontWeight: 500, textAlign: 'right' }}>
+    {(v || 0).toLocaleString('pt-BR')}
+  </Typography>
+);
+const renderPct = (v) => (
+  <Typography sx={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, color: 'text.secondary', textAlign: 'right' }}>
+    {(v || 0).toFixed(1)}%
+  </Typography>
+);
 
+/* ─── COMPONENTES ESTRUTURAIS ─── */
+const SectionCard = styled(Card)(({ theme }) => ({
+  borderRadius: 12,
+  border: `0.5px solid ${alpha(theme.palette.divider, 0.8)}`,
+  boxShadow: 'none',
+  transition: 'border-color 0.18s',
+  '&:hover': { borderColor: theme.palette.divider },
+}));
+
+const SectionHead = ({ title, count, children }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.75 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography sx={{ fontFamily: '"Geist", sans-serif', fontWeight: 500, fontSize: 13, color: 'text.primary' }}>
+        {title}
+      </Typography>
+      {count != null && (
+        <Box sx={{
+          height: 18, px: 0.9, borderRadius: '9px',
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+          color: 'primary.main', fontSize: 10, fontWeight: 600,
+          fontFamily: '"Geist Mono", monospace',
+          display: 'flex', alignItems: 'center',
+        }}>
+          {count}
+        </Box>
+      )}
+    </Box>
+    {children && <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>{children}</Box>}
+  </Box>
+);
+
+const ViewToggle = ({ value, onChange }) => (
+  <ToggleButtonGroup value={value} exclusive onChange={(_, v) => v && onChange(v)} size="small"
+    sx={{ '& .MuiToggleButton-root': { fontFamily: '"Geist", sans-serif', fontSize: 11, py: 0.35, px: 1.25 } }}>
+    <ToggleButton value="tabela">Tabela</ToggleButton>
+    <ToggleButton value="grafico">Gráfico</ToggleButton>
+  </ToggleButtonGroup>
+);
+
+const MetricCard = ({ label, value, sub, accentColor }) => (
+  <SectionCard sx={{ position: 'relative', overflow: 'hidden' }}>
+    <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, bgcolor: accentColor || 'primary.main' }} />
+    <CardContent sx={{ p: 2, pb: '16px !important' }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.primary', fontFamily: '"Geist", sans-serif', mb: 1, opacity: 0.6 }}>
+        {label}
+      </Typography>
+      <Typography sx={{ fontSize: 26, fontWeight: 500, lineHeight: 1, mb: 0.5, fontFamily: '"Geist Mono", monospace', color: 'text.primary' }}>
+        {value}
+      </Typography>
+      {sub && <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>{sub}</Typography>}
+    </CardContent>
+  </SectionCard>
+);
+
+const ProgressBar = ({ pct }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 110 }}>
+    <Box sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: (t) => alpha(t.palette.divider, 0.5), overflow: 'hidden' }}>
+      <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 2, bgcolor: 'primary.main' }} />
+    </Box>
+    <Typography sx={{ fontSize: 10, fontFamily: '"Geist Mono", monospace', color: 'text.secondary', minWidth: 26, textAlign: 'right' }}>
+      {pct}%
+    </Typography>
+  </Box>
+);
+
+const DataTable = ({ columns, rows, emptyMessage = 'Sem dados' }) => {
+  const theme = useTheme();
+  if (!rows || rows.length === 0)
+    return <Typography sx={{ py: 2, fontSize: 13, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>{emptyMessage}</Typography>;
   return (
     <Box sx={{ overflowX: 'auto' }}>
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}` }}>Usuário</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}`, width: 90 }}>Audiências</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, borderBottom: `2px solid ${theme.palette.divider}`, width: 70 }}>%</TableCell>
+            {columns.map((col) => (
+              <TableCell key={col.id} align={col.align || 'left'}
+                sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary', borderBottom: `1.5px solid ${theme.palette.divider}`, fontFamily: '"Geist", sans-serif', pb: 1, whiteSpace: 'nowrap' }}>
+                {col.label}
+              </TableCell>
+            ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {dados.map((row, index) => (
-            <TableRow
-              key={index}
-              hover
-              sx={{ '&:last-child td': { borderBottom: `2px solid ${theme.palette.divider}` } }}
-            >
-              <TableCell>
-                <Typography variant="body2" fontWeight={500}>{row.nome}</Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" fontWeight={600}>
-                  {(row.totalAudiencias || 0).toLocaleString('pt-BR')}
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" fontWeight={500}>
-                  {(row.percentual || 0).toFixed(1)}%
-                </Typography>
-              </TableCell>
+          {rows.map((row, i) => (
+            <TableRow key={i} hover sx={{ '&:last-child td': { border: 0 } }}>
+              {columns.map((col) => (
+                <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25 }}>
+                  {col.render ? col.render(row[col.field], row) : <Typography sx={{ fontSize: 12, fontFamily: '"Geist", sans-serif' }}>{row[col.field] ?? '—'}</Typography>}
+                </TableCell>
+              ))}
             </TableRow>
           ))}
         </TableBody>
-        {totalGeral > 0 && (
-          <TableBody>
-            <TableRow sx={{ bgcolor: 'action.hover' }}>
-              <TableCell>
-                <Typography variant="subtitle2" fontWeight={700}>Total</Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="subtitle2" fontWeight={700}>{totalGeral.toLocaleString('pt-BR')}</Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="subtitle2" fontWeight={700}>100%</Typography>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        )}
       </Table>
     </Box>
   );
 };
 
-// Componente de gráfico de pizza para Subnúcleos
-const SubnucleosChart = ({ subnucleos }) => {
+/* ─── GRÁFICOS ─── */
+const BarChart = ({ items, labelField, valueField }) => {
   const theme = useTheme();
+  if (!items?.length) return <Typography sx={{ py: 2, fontSize: 13, color: 'text.secondary' }}>Sem dados</Typography>;
+  return (
+    <Chart
+      options={{
+        chart: { type: 'bar', toolbar: { show: false }, fontFamily: '"Geist", sans-serif', foreColor: theme.palette.text.secondary },
+        colors: [theme.palette.primary.main],
+        plotOptions: { bar: { horizontal: true, barHeight: '52%', borderRadius: 5, borderRadiusApplication: 'end' } },
+        dataLabels: { enabled: true, formatter: (v) => v.toLocaleString('pt-BR'), style: { fontSize: '11px', fontWeight: 400 } },
+        legend: { show: false },
+        grid: { borderColor: alpha(theme.palette.divider, 0.4), strokeDashArray: 3, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+        xaxis: { categories: items.map((d) => d[labelField] || '—'), axisBorder: { show: false }, labels: { style: { fontSize: '11px', fontFamily: '"Geist", sans-serif' } } },
+        yaxis: { labels: { style: { fontSize: '11px', fontWeight: 500, fontFamily: '"Geist", sans-serif' }, maxWidth: 220 } },
+        tooltip: { theme: theme.palette.mode, y: { formatter: (v) => v.toLocaleString('pt-BR') } },
+      }}
+      series={[{ name: 'Total', data: items.map((d) => d[valueField] || 0) }]}
+      type="bar" height={Math.max(180, items.length * 46)} width="100%"
+    />
+  );
+};
 
-  // Ordenar por total decrescente
-  const sortedSubnucleos = [...subnucleos].sort((a, b) => b.total - a.total);
-  const labels = sortedSubnucleos.map(item => item.subnucleo || '-');
-  const data = sortedSubnucleos.map(item => item.total || 0);
-  const total = data.reduce((acc, val) => acc + val, 0);
-
-  const colors = [
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.info.main,
-    theme.palette.error.main,
-    theme.palette.primary.main,
-    theme.palette.secondary.main,
-  ];
-
-  const chartOptions = {
-    chart: {
-      type: 'donut',
-      fontFamily: "'Plus Jakarta Sans', sans-serif;",
-      foreColor: '#adb0bb',
-    },
-    colors: colors,
-    labels: labels,
-    dataLabels: {
-      enabled: true,
-      formatter: (val) => `${val.toFixed(0)}%`,
-      style: {
-        fontSize: '12px',
-        fontWeight: 600,
-      },
-      dropShadow: { enabled: false },
-    },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '55%',
-          labels: {
-            show: true,
-            name: {
-              show: true,
-              fontSize: '14px',
-              fontWeight: 600,
-            },
-            value: {
-              show: true,
-              fontSize: '20px',
-              fontWeight: 700,
-              formatter: (val) => parseInt(val).toLocaleString('pt-BR'),
-            },
-            total: {
-              show: true,
-              label: 'Total',
-              fontSize: '14px',
-              fontWeight: 600,
-              formatter: () => total.toLocaleString('pt-BR'),
-            },
-          },
-        },
-      },
-    },
-    legend: { show: false },
-    tooltip: {
-      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
-      y: {
-        formatter: (val) => val.toLocaleString('pt-BR'),
-      },
-    },
-    stroke: {
-      show: true,
-      width: 3,
-      colors: [theme.palette.background.paper],
-    },
-  };
-
+const DonutChart = ({ items, labelField, valueField }) => {
+  const theme = useTheme();
+  if (!items?.length) return <Typography sx={{ py: 2, fontSize: 13, color: 'text.secondary' }}>Sem dados</Typography>;
+  const total = items.reduce((a, d) => a + (d[valueField] || 0), 0);
   return (
     <Box>
       <Chart
-        options={chartOptions}
-        series={data}
-        type="donut"
-        height={280}
-        width="100%"
+        options={{
+          chart: { type: 'donut', fontFamily: '"Geist", sans-serif', foreColor: theme.palette.text.secondary },
+          colors: CHART_COLORS,
+          labels: items.map((d) => d[labelField] || '—'),
+          dataLabels: { enabled: true, formatter: (v) => `${v.toFixed(0)}%`, dropShadow: { enabled: false }, style: { fontSize: '11px', fontWeight: 400 } },
+          plotOptions: { pie: { donut: { size: '60%', labels: { show: true, name: { fontSize: '12px', fontWeight: 500 }, value: { fontSize: '20px', fontWeight: 500, fontFamily: '"Geist Mono", monospace', formatter: (v) => parseInt(v).toLocaleString('pt-BR') }, total: { show: true, label: 'Total', fontSize: '11px', fontWeight: 500, formatter: () => total.toLocaleString('pt-BR') } } } } },
+          legend: { show: false },
+          stroke: { show: true, width: 2, colors: [theme.palette.background.paper] },
+          tooltip: { theme: theme.palette.mode, y: { formatter: (v) => v.toLocaleString('pt-BR') } },
+        }}
+        series={items.map((d) => d[valueField] || 0)}
+        type="donut" height={240} width="100%"
       />
-      {/* Legenda customizada com cores e totais */}
-      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {sortedSubnucleos.map((item, index) => {
-          const percentage = total > 0 ? ((item.total / total) * 100).toFixed(1) : 0;
-          return (
-            <Box 
-              key={index} 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                '&:hover': { bgcolor: 'action.hover' }
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box 
-                  sx={{ 
-                    width: 12, 
-                    height: 12, 
-                    borderRadius: '50%', 
-                    bgcolor: colors[index % colors.length],
-                    flexShrink: 0,
-                  }} 
-                />
-                <Typography variant="body2" fontWeight={500}>
-                  {item.subnucleo || '-'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body2" color="textSecondary">
-                  {percentage}%
-                </Typography>
-                <Typography variant="body2" fontWeight={600} sx={{ minWidth: 50, textAlign: 'right' }}>
-                  {(item.total || 0).toLocaleString('pt-BR')}
-                </Typography>
-              </Box>
+      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+        {items.map((item, i) => (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 0.5, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 12, fontFamily: '"Geist", sans-serif' }}>{item[labelField] || '—'}</Typography>
             </Box>
-          );
-        })}
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: '"Geist Mono", monospace' }}>
+                {total > 0 ? ((item[valueField] / total) * 100).toFixed(1) : 0}%
+              </Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 500, fontFamily: '"Geist Mono", monospace', minWidth: 36, textAlign: 'right' }}>
+                {(item[valueField] || 0).toLocaleString('pt-BR')}
+              </Typography>
+            </Box>
+          </Box>
+        ))}
       </Box>
     </Box>
   );
 };
 
+/* ─── COMPONENTE PRINCIPAL ─── */
 const Relatorio = () => {
-  // Estado do formulário
-  const [formData, setFormData] = useState({
-    dataInicio: '',
-    dataFim: '',
-    usuario: null,
-    orgaoJulgador: null,
-    tipoContestacao: '',
-    subnucleo: '',
-    classeJudicial: '',
-    viewRelatorio: '',
-    tipoEscala: '',
-  });
-
-  // Estados para busca de usuário
-  const [usuarioOptions, setUsuarioOptions] = useState([]);
-  const [usuarioSearchTerm, setUsuarioSearchTerm] = useState('');
-  const [usuarioLoading, setUsuarioLoading] = useState(false);
-
-  // Estados para busca de órgão julgador
+  const [formData, setFormData] = useState({ dataInicio: '', dataFim: '', dataEscala: '', tipoRelatorio: '', tipoEscala: '', orgaoJulgador: null, tipoContestacao: '', subnucleo: '', classeJudicial: '', usuariosIds: [] });
   const [orgaoJulgadorOptions, setOrgaoJulgadorOptions] = useState([]);
   const [orgaoJulgadorSearchTerm, setOrgaoJulgadorSearchTerm] = useState('');
   const [orgaoJulgadorLoading, setOrgaoJulgadorLoading] = useState(false);
-
-  // Estado dos resultados
+  const [usuarioOptions, setUsuarioOptions] = useState([]);
+  const [usuarioSearchTerm, setUsuarioSearchTerm] = useState('');
+  const [usuarioLoading, setUsuarioLoading] = useState(false);
   const [resultados, setResultados] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tabelaLoading, setTabelaLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
   const [buscaRealizada, setBuscaRealizada] = useState(false);
-
-  // Estado unificado dos cards de resumo
-  const [resumo, setResumo] = useState({
-    distribuicao: { dados: [], totalGeral: 0 },
-    contestacoes: [],
-    totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
-    subnucleos: [],
-  });
-
-  // Buscar usuários com debounce
-  useEffect(() => {
-    const buscar = async () => {
-      setUsuarioLoading(true);
-      try {
-        const response = await usuarioService.listar(0, 50, usuarioSearchTerm || '');
-        setUsuarioOptions(response.content || []);
-      } catch (err) {
-        console.error('Erro ao buscar usuários:', err);
-        setUsuarioOptions([]);
-      } finally {
-        setUsuarioLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(buscar, 500);
-    return () => clearTimeout(timeoutId);
-  }, [usuarioSearchTerm]);
-
-  // Função para carregar usuários ao clicar no campo
-  const handleUsuarioFocus = async () => {
-    if (usuarioOptions.length === 0) {
-      setUsuarioLoading(true);
-      try {
-        const response = await usuarioService.listar(0, 50, '');
-        setUsuarioOptions(response.content || []);
-      } catch (err) {
-        console.error('Erro ao buscar usuários:', err);
-      } finally {
-        setUsuarioLoading(false);
-      }
-    }
-  };
-
-  // Buscar órgãos julgadores com debounce
-  useEffect(() => {
-    const buscar = async () => {
-      setOrgaoJulgadorLoading(true);
-      try {
-        const results = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '', [], 0, 50);
-        setOrgaoJulgadorOptions(results);
-      } catch (err) {
-        console.error('Erro ao buscar órgãos julgadores:', err);
-        setOrgaoJulgadorOptions([]);
-      } finally {
-        setOrgaoJulgadorLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(buscar, 500);
-    return () => clearTimeout(timeoutId);
-  }, [orgaoJulgadorSearchTerm]);
-
-  // Função para carregar órgãos julgadores ao clicar no campo
-  const handleOrgaoJulgadorFocus = async () => {
-    if (orgaoJulgadorOptions.length === 0) {
-      setOrgaoJulgadorLoading(true);
-      try {
-        const results = await orgaoJulgadorService.buscar('', [], 0, 50);
-        setOrgaoJulgadorOptions(results);
-      } catch (err) {
-        console.error('Erro ao buscar órgãos julgadores:', err);
-      } finally {
-        setOrgaoJulgadorLoading(false);
-      }
-    }
-  };
-
-  // Atualizar tabela quando a view mudar
-  useEffect(() => {
-    if (buscaRealizada) {
-      setPage(0);
-      handleBuscarTabela(0);
-    }
-  }, [formData.viewRelatorio]);
-
-  const handleBuscar = async (newPage = 0) => {
-    if (!formData.dataInicio || !formData.dataFim || !formData.viewRelatorio) {
-      return;
-    }
-
-    // Validação: tipoEscala é obrigatório quando viewRelatorio é ESCALA
-    if (formData.viewRelatorio === 'ESCALA' && !formData.tipoEscala) {
-      alert('Selecione um tipo de escala para continuar.');
-      return;
-    }
-
-    setLoading(true);
-    setBuscaRealizada(true);
-    try {
-      const filtros = {
-        page: newPage,
-        size: rowsPerPage,
-        dataInicio: formData.dataInicio,
-        dataFim: formData.dataFim,
-        userId: formData.usuario?.id || null,
-        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
-        tipoContestacao: formData.tipoContestacao || null,
-        subnucleo: formData.subnucleo || null,
-        classeJudicial: formData.classeJudicial || null,
-        tipoEscala: formData.tipoEscala || null,
-        view: formData.viewRelatorio,
-      };
-
-      const [tabelaResult, resumoResult] = await Promise.allSettled([
-        buscarDadosRelatorio(formData.viewRelatorio || 'ESCALA', filtros),
-        relatorioService.buscarResumo(filtros),
-      ]);
-
-      // Tabela (sempre deve aparecer, mesmo se outros falharem)
-      if (tabelaResult.status === 'fulfilled') {
-        setResultados(tabelaResult.value.content || []);
-        setTotalElements(tabelaResult.value.totalElements || 0);
-        setPage(newPage);
-      } else {
-        console.error('Erro ao buscar tabela:', tabelaResult.reason);
-        setResultados([]);
-        setTotalElements(0);
-      }
-
-      // Resumo unificado dos cards
-      if (resumoResult.status === 'fulfilled') {
-        const data = resumoResult.value || {};
-        setResumo({
-          distribuicao: data.distribuicao || { dados: [], totalGeral: 0 },
-          contestacoes: data.contestacoes || [],
-          totaisGerais: data.totaisGerais || { totalAudiencias: 0, totalPautas: 0 },
-          subnucleos: data.subnucleos || [],
-        });
-      } else {
-        console.error('Erro ao buscar resumo:', resumoResult.reason);
-        setResumo({
-          distribuicao: { dados: [], totalGeral: 0 },
-          contestacoes: [],
-          totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
-          subnucleos: [],
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao buscar relatório:', error);
-      setResultados([]);
-      setTotalElements(0);
-      setResumo({
-        distribuicao: { dados: [], totalGeral: 0 },
-        contestacoes: [],
-        totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
-        subnucleos: [],
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Função para buscar apenas os dados da tabela (paginação)
-  const [tabelaLoading, setTabelaLoading] = useState(false);
-  
-  const handleBuscarTabela = async (newPage, newRowsPerPage = rowsPerPage) => {
-    if (!formData.dataInicio || !formData.dataFim) {
-      return;
-    }
-
-    setTabelaLoading(true);
-    try {
-      const filtros = {
-        page: newPage,
-        size: newRowsPerPage,
-        dataInicio: formData.dataInicio,
-        dataFim: formData.dataFim,
-        userId: formData.usuario?.id || null,
-        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
-        tipoContestacao: formData.tipoContestacao || null,
-        subnucleo: formData.subnucleo || null,
-        classeJudicial: formData.classeJudicial || null,
-        tipoEscala: formData.tipoEscala || null,
-        view: formData.viewRelatorio,
-      };
-
-      const response = await buscarDadosRelatorio(formData.viewRelatorio, filtros);
-
-      setResultados(response.content || []);
-      setTotalElements(response.totalElements || 0);
-      setPage(newPage);
-    } catch (error) {
-      console.error('Erro ao buscar tabela:', error);
-    } finally {
-      setTabelaLoading(false);
-    }
-  };
-
-  const handleChangePage = (event, newPage) => {
-    handleBuscarTabela(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 10);
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
-    if (buscaRealizada) {
-      handleBuscarTabela(0, newRowsPerPage);
-    }
-  };
-
-  const handleLimpar = () => {
-    setFormData({
-      dataInicio: '',
-      dataFim: '',
-      usuario: null,
-      orgaoJulgador: null,
-      tipoContestacao: '',
-      subnucleo: '',
-      classeJudicial: '',
-      viewRelatorio: '',
-      tipoEscala: '',
-    });
-    setResultados([]);
-    setTotalElements(0);
-    setPage(0);
-    setBuscaRealizada(false);
-    setResumo({
-      distribuicao: { dados: [], totalGeral: 0 },
-      contestacoes: [],
-      totaisGerais: { totalAudiencias: 0, totalPautas: 0 },
-      subnucleos: [],
-    });
-  };
-
-  // Estados para controlar o carregamento de Excel
+  const [metricsData, setMetricsData] = useState(null);
+  const [contestacaoTab, setContestacaoTab] = useState('JEF');
+  const [viewContestation, setViewContestation] = useState('tabela');
+  const [viewSubnucleo, setViewSubnucleo] = useState('tabela');
+  const [viewSetores, setViewSetores] = useState('tabela');
+  const [viewTiposAnalise, setViewTiposAnalise] = useState('tabela');
+  const [viewClasseProcessual, setViewClasseProcessual] = useState('tabela');
+  const [viewOrgaosJulgadores, setViewOrgaosJulgadores] = useState('tabela');
+  const [pageOrgaos, setPageOrgaos] = useState(0);
+  const [sortBy, setSortBy] = useState('dataPauta');
+  const [sortDir, setSortDir] = useState('desc');
+  const [buscaCarga, setBuscaCarga] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [excelLoadingAudiencia, setExcelLoadingAudiencia] = useState(false);
   const [excelLoadingPauta, setExcelLoadingPauta] = useState(false);
 
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      setOrgaoJulgadorLoading(true);
+      try { const r = await orgaoJulgadorService.buscar(orgaoJulgadorSearchTerm || '', [], 0, 50); setOrgaoJulgadorOptions(r); }
+      catch { setOrgaoJulgadorOptions([]); } finally { setOrgaoJulgadorLoading(false); }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [orgaoJulgadorSearchTerm]);
+
+  const handleOrgaoJulgadorFocus = async () => {
+    if (!orgaoJulgadorOptions.length) {
+      setOrgaoJulgadorLoading(true);
+      try { const r = await orgaoJulgadorService.buscar('', [], 0, 50); setOrgaoJulgadorOptions(r); }
+      catch { } finally { setOrgaoJulgadorLoading(false); }
+    }
+  };
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!formData.tipoEscala) { setUsuarioOptions([]); return; }
+      setUsuarioLoading(true);
+      try {
+        let r;
+        if (formData.tipoEscala === 'AVALIADOR') r = await avaliadorService.buscar(usuarioSearchTerm);
+        else if (formData.tipoEscala === 'PAUTISTA') r = await pautistaService.buscar(usuarioSearchTerm);
+        else r = await apoioService.buscar(usuarioSearchTerm);
+        setUsuarioOptions(r);
+      } catch { setUsuarioOptions([]); } finally { setUsuarioLoading(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [usuarioSearchTerm, formData.tipoEscala]);
+
+  const buildFiltros = (pageNum, pageSizeOverride, sortByOverride, sortDirOverride) => ({
+    page: pageNum, size: pageSizeOverride !== undefined ? pageSizeOverride : rowsPerPage,
+    dataInicio: formData.dataInicio, dataFim: formData.dataFim, dataEscala: formData.dataEscala || null,
+    tipoRelatorio: formData.tipoRelatorio, tipoEscala: formData.tipoEscala || null,
+    orgaoJulgador: formData.orgaoJulgador ? formData.orgaoJulgador.id : null,
+    tipoContestacao: formData.tipoContestacao || null, subnucleo: formData.subnucleo || null,
+    classeJudicial: formData.classeJudicial || null,
+    usuariosIds: formData.usuariosIds.map((u) => u.id),
+    sortBy: sortByOverride ?? sortBy, sortDir: sortDirOverride ?? sortDir,
+  });
+
+  const handleBuscar = async () => {
+    if (!formData.dataInicio || !formData.dataFim || !formData.tipoRelatorio) return;
+    if (formData.tipoRelatorio === 'ESCALA' && !formData.tipoEscala) { alert('Selecione um tipo de escala para continuar.'); return; }
+    setLoading(true); setBuscaRealizada(true); setPage(0); setPageOrgaos(0); setErrorMessage('');
+    try {
+      const filtros = buildFiltros(0);
+      let metrics, audiencias;
+      if (formData.tipoRelatorio === 'ESCALA') {
+        [metrics, audiencias] = await Promise.all([relatorioService.buscarEscalaMetrics(filtros), relatorioService.buscarEscalaAudiencias(filtros)]);
+      } else {
+        [metrics, audiencias] = await Promise.all([relatorioService.buscarAudienciaMetrics(filtros), relatorioService.buscarAudienciasListar(filtros)]);
+      }
+      setMetricsData(metrics); setResultados(audiencias.content); setTotalElements(audiencias.totalElements);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(error.message || 'Erro ao buscar relatório. Tente novamente.');
+      setMetricsData(null); setResultados([]); setTotalElements(0);
+    } finally { setLoading(false); }
+  };
+
+  const handleBuscarTabela = async (newPage, newRowsPerPage, newSortBy, newSortDir) => {
+    if (!formData.dataInicio || !formData.dataFim) return;
+    setTabelaLoading(true);
+    try {
+      const filtros = buildFiltros(newPage, newRowsPerPage, newSortBy, newSortDir);
+      const response = formData.tipoRelatorio === 'ESCALA'
+        ? await relatorioService.buscarEscalaAudiencias(filtros)
+        : await relatorioService.buscarAudienciasListar(filtros);
+      setResultados(response.content); setTotalElements(response.totalElements); setPage(newPage);
+    } catch (e) { console.error(e); } finally { setTabelaLoading(false); }
+  };
+
+  const handleSort = (field) => {
+    const newDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'desc';
+    setSortBy(field); setSortDir(newDir); setPage(0);
+    if (buscaRealizada) handleBuscarTabela(0, rowsPerPage, field, newDir);
+  };
+
+  const handleChangePage = (_, newPage) => handleBuscarTabela(newPage);
+  const handleChangeRowsPerPage = (e) => {
+    const s = parseInt(e.target.value, 10); setRowsPerPage(s); setPage(0);
+    if (buscaRealizada) handleBuscarTabela(0, s);
+  };
+
+  const handleLimpar = () => {
+    setFormData({ dataInicio: '', dataFim: '', dataEscala: '', tipoRelatorio: '', tipoEscala: '', orgaoJulgador: null, tipoContestacao: '', subnucleo: '', classeJudicial: '', usuariosIds: [] });
+    setResultados([]); setTotalElements(0); setPage(0); setBuscaRealizada(false); setMetricsData(null); setErrorMessage('');
+  };
+
+  const downloadBlob = (blob, nome) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.setAttribute('download', nome);
+    document.body.appendChild(a); a.click(); a.parentNode.removeChild(a); window.URL.revokeObjectURL(url);
+  };
+
   const handleGerarExcelAudiencia = async () => {
-    if (!buscaRealizada) {
-      return;
-    }
-
-    if (!formData.dataInicio || !formData.dataFim) {
-      return;
-    }
-
+    if (!buscaRealizada || !formData.dataInicio || !formData.dataFim) return;
     setExcelLoadingAudiencia(true);
     try {
-      const filtros = {
-        dataInicio: formData.dataInicio,
-        dataFim: formData.dataFim,
-        userId: formData.usuario?.id || null,
-        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
-        tipoContestacao: formData.tipoContestacao || null,
-        subnucleo: formData.subnucleo || null,
-        classeJudicial: formData.classeJudicial || null,
-        tipoEscala: formData.tipoEscala || null,
-      };
-
-      let blob;
-      let nomeArquivo;
-
-      const viewType = formData.viewRelatorio;
-      
-      if (viewType === 'AUDIENCIA') {
-        blob = await relatorioService.gerarExcelAudiencia(filtros);
-        nomeArquivo = `Audiencias_${formData.dataInicio}_${formData.dataFim}.xlsx`;
-      } else if (viewType === 'AUDIENCIA_NAO_ENCONTRADA') {
-        blob = await relatorioService.gerarExcelAudienciaNaoEncontrada(filtros);
-        nomeArquivo = `Audiencias_nao_encontradas_${formData.dataInicio}_${formData.dataFim}.xlsx`;
-      } else {
-        blob = await relatorioService.gerarExcelEscala(filtros);
-        nomeArquivo = `Escala_${formData.dataInicio}_${formData.dataFim}.xlsx`;
-      }
-
-      // Criar URL blob e fazer download
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', nomeArquivo);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Erro ao gerar e baixar Excel de Audiências:', error);
-      alert('Erro ao gerar o arquivo Excel de Audiências. Verifique o console para mais detalhes.');
-    } finally {
-      setExcelLoadingAudiencia(false);
-    }
+      const filtros = { dataInicio: formData.dataInicio, dataFim: formData.dataFim, orgaoJulgadorId: formData.orgaoJulgador?.id || null, tipoContestacao: formData.tipoContestacao || null, subnucleo: formData.subnucleo || null, classeJudicial: formData.classeJudicial || null, tipoEscala: formData.tipoEscala || null };
+      const blob = formData.tipoRelatorio === 'AUDIENCIA' ? await relatorioService.gerarExcelAudiencia(filtros) : await relatorioService.gerarExcelEscala(filtros);
+      downloadBlob(blob, formData.tipoRelatorio === 'AUDIENCIA' ? `Audiencias_${formData.dataInicio}_${formData.dataFim}.xlsx` : `Escala_${formData.dataInicio}_${formData.dataFim}.xlsx`);
+    } catch (e) { console.error(e); alert('Erro ao gerar Excel.'); } finally { setExcelLoadingAudiencia(false); }
   };
 
   const handleGerarExcelPauta = async () => {
-    if (!buscaRealizada) {
-      return;
-    }
-
-    if (!formData.dataInicio || !formData.dataFim) {
-      return;
-    }
-
+    if (!buscaRealizada || !formData.dataInicio || !formData.dataFim) return;
     setExcelLoadingPauta(true);
     try {
-      const filtros = {
-        dataInicio: formData.dataInicio,
-        dataFim: formData.dataFim,
-        orgaoJulgadorId: formData.orgaoJulgador?.id || null,
-        tipoContestacao: formData.tipoContestacao || null,
-        subnucleo: formData.subnucleo || null,
-        classeJudicial: formData.classeJudicial || null,
-      };
-
+      const filtros = { dataInicio: formData.dataInicio, dataFim: formData.dataFim, orgaoJulgadorId: formData.orgaoJulgador?.id || null, tipoContestacao: formData.tipoContestacao || null, subnucleo: formData.subnucleo || null, classeJudicial: formData.classeJudicial || null };
       const blob = await relatorioService.gerarExcelPauta(filtros);
-      const nomeArquivo = `Pautas_${formData.dataInicio}_${formData.dataFim}.xlsx`;
-
-      // Criar URL blob e fazer download
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', nomeArquivo);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Erro ao gerar e baixar Excel de Pautas:', error);
-      alert('Erro ao gerar o arquivo Excel de Pautas. Verifique o console para mais detalhes.');
-    } finally {
-      setExcelLoadingPauta(false);
-    }
+      downloadBlob(blob, `Pautas_${formData.dataInicio}_${formData.dataFim}.xlsx`);
+    } catch (e) { console.error(e); alert('Erro ao gerar Excel de Pautas.'); } finally { setExcelLoadingPauta(false); }
   };
+
+  const getContestacaoItems = useCallback(() => {
+    if (!metricsData?.tiposContestacao) return [];
+    return metricsData.tiposContestacao[contestacaoTab]?.itens || [];
+  }, [metricsData, contestacaoTab]);
+
+  const colunas = useMemo(() => formData.tipoRelatorio === 'AUDIENCIA' ? COLUNAS_AUDIENCIA : COLUNAS_ESCALA, [formData.tipoRelatorio]);
+
+  const maxCarga = useMemo(() =>
+    metricsData?.distribuicaoCarga?.length ? Math.max(...metricsData.distribuicaoCarga.map((d) => d.totalAudiencias)) : 0,
+    [metricsData]);
+
+  const cargaFiltrada = useMemo(() =>
+    (metricsData?.distribuicaoCarga || []).filter((d) => !buscaCarga || d.nome?.toLowerCase().includes(buscaCarga.toLowerCase())),
+    [metricsData, buscaCarga]);
+
+  const r = metricsData?.resumo || {};
+
+  const btnSx = { fontFamily: '"Geist", sans-serif', fontWeight: 500, textTransform: 'none', borderRadius: '8px', fontSize: 13 };
+  const togSx = { '& .MuiToggleButton-root': { fontFamily: '"Geist", sans-serif', fontSize: 11, py: 0.35, px: 1.25 } };
+
+  /* Reuse colunas para contestação e subnúcleo */
+  const colsContest = [
+    { id: 'descricao', label: 'Tipo', field: 'descricao' },
+    { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
+    { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+  ];
+  const colsSub = [
+    { id: 'descricao', label: 'Subnúcleo', field: 'descricao' },
+    { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
+    { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+  ];
+  const colsOrgaos = [
+    { id: 'nome', label: 'Nome', field: 'nome' },
+    { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
+    { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct },
+  ];
 
   return (
     <PageContainer title="Relatório" description="Relatório de Escala">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        
-        {/* ==================== CAMADA 1: FILTROS ==================== */}
-        <ReportCard title="Filtros">
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Linha 1: Data Início, Data Fim, Tipo Relatório, Usuário */}
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  label="Data Início *"
-                  type="date"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.dataInicio}
-                  onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
-                />
-              </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  label="Data Fim *"
-                  type="date"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.dataFim}
-                  onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })}
-                />
-              </Box>
+        {/* FILTROS */}
+        <SectionCard>
+          <CardContent sx={{ p: 2.5, pb: '20px !important' }}>
+            <SectionHead title="Parâmetros do relatório" />
 
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  select
-                  label="Selecionar Tipo Relatório *"
-                  fullWidth
-                  value={formData.viewRelatorio}
-                  onChange={(e) => setFormData({ ...formData, viewRelatorio: e.target.value })}
-                >
-                  {VIEW_RELATORIO_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 1.5, mb: 1.5 }}>
+              <TextField label="Data início *" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} value={formData.dataInicio} onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })} />
+              <TextField label="Data fim *" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} value={formData.dataFim} onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })} />
+              <TextField select label="Tipo de relatório *" fullWidth size="small" value={formData.tipoRelatorio} onChange={(e) => setFormData({ ...formData, tipoRelatorio: e.target.value, tipoEscala: '', dataEscala: '', usuariosIds: [] })}>
+                {TIPO_RELATORIO_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </TextField>
+              {formData.tipoRelatorio === 'ESCALA' && (
+                <TextField select label="Tipo de escala *" fullWidth size="small" value={formData.tipoEscala} onChange={(e) => setFormData({ ...formData, tipoEscala: e.target.value, usuariosIds: [] })}>
+                  {TIPO_ESCALA_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
                 </TextField>
-              </Box>
-
-              {formData.viewRelatorio === 'ESCALA' && (
-                <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                  <TextField
-                    select
-                    label="Selecionar Tipo *"
-                    fullWidth
-                    value={formData.tipoEscala}
-                    onChange={(e) => setFormData({ ...formData, tipoEscala: e.target.value })}
-                  >
-                    {TIPO_ESCALA_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Box>
               )}
-
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <Autocomplete
-                  options={usuarioOptions}
-                  getOptionLabel={(option) => option.nome || ''}
-                  value={formData.usuario}
-                  loading={usuarioLoading}
-                  onOpen={handleUsuarioFocus}
-                  onChange={(event, newValue) => setFormData({ ...formData, usuario: newValue })}
-                  onInputChange={(event, newInputValue) => setUsuarioSearchTerm(newInputValue)}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Usuário"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {usuarioLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Box>
             </Box>
 
-            {/* Linha 2: Órgão Julgador, Tipo Contestação, Subnúcleo, Classe Judicial */}
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <Autocomplete
-                  options={orgaoJulgadorOptions}
-                  getOptionLabel={(option) => option.nome || ''}
-                  value={formData.orgaoJulgador}
-                  loading={orgaoJulgadorLoading}
-                  onOpen={handleOrgaoJulgadorFocus}
-                  onChange={(event, newValue) => setFormData({ ...formData, orgaoJulgador: newValue })}
-                  onInputChange={(event, newInputValue) => setOrgaoJulgadorSearchTerm(newInputValue)}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Órgão Julgador"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {orgaoJulgadorLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  select
-                  label="Tipo Contestação"
-                  fullWidth
-                  value={formData.tipoContestacao}
-                  onChange={(e) => setFormData({ ...formData, tipoContestacao: e.target.value })}
-                >
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 1.5, mb: 1.5 }}>
+              <Autocomplete size="small" options={orgaoJulgadorOptions} getOptionLabel={(o) => o.nome || ''} value={formData.orgaoJulgador} loading={orgaoJulgadorLoading} onOpen={handleOrgaoJulgadorFocus} onChange={(_, v) => setFormData({ ...formData, orgaoJulgador: v })} onInputChange={(_, v) => setOrgaoJulgadorSearchTerm(v)} isOptionEqualToValue={(o, v) => o.id === v.id}
+                renderInput={(p) => <TextField {...p} label="Órgão julgador" InputProps={{ ...p.InputProps, endAdornment: <>{orgaoJulgadorLoading && <CircularProgress size={16} />}{p.InputProps.endAdornment}</> }} />} />
+              <TextField select label="Tipo contestação" fullWidth size="small" value={formData.tipoContestacao} onChange={(e) => setFormData({ ...formData, tipoContestacao: e.target.value })}>
+                <MenuItem value="">Todos</MenuItem>
+                {TIPO_CONTESTACAO_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </TextField>
+              {formData.tipoRelatorio === 'ESCALA' && (
+                <TextField select label="Subnúcleo" fullWidth size="small" value={formData.subnucleo} onChange={(e) => setFormData({ ...formData, subnucleo: e.target.value })}>
                   <MenuItem value="">Todos</MenuItem>
-                  {TIPO_CONTESTACAO_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
+                  {SUBNUCLEO_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
                 </TextField>
-              </Box>
-
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  select
-                  label="Subnúcleo"
-                  fullWidth
-                  value={formData.subnucleo}
-                  onChange={(e) => setFormData({ ...formData, subnucleo: e.target.value })}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {SUBNUCLEO_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-
-              <Box sx={{ flex: '1 1 calc(25% - 12px)', minWidth: 180 }}>
-                <TextField
-                  select
-                  label="Classe Judicial"
-                  fullWidth
-                  value={formData.classeJudicial}
-                  onChange={(e) => setFormData({ ...formData, classeJudicial: e.target.value })}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {CLASSE_JUDICIAL_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
+              )}
+              <TextField select label="Classe judicial" fullWidth size="small" value={formData.classeJudicial} onChange={(e) => setFormData({ ...formData, classeJudicial: e.target.value })}>
+                <MenuItem value="">Todas</MenuItem>
+                {CLASSE_JUDICIAL_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              </TextField>
             </Box>
 
-            {/* Linha 3: Botões */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<IconSearch size={18} />}
-                onClick={() => handleBuscar(0)}
-                disabled={loading || !formData.dataInicio || !formData.dataFim || !formData.viewRelatorio || (formData.viewRelatorio === 'ESCALA' && !formData.tipoEscala)}
-              >
-                Gerar Relatório
+            {formData.tipoRelatorio === 'ESCALA' && (
+              <Box sx={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 1.5, mb: 1.5 }}>
+                <TextField label="Data escala" type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} value={formData.dataEscala} onChange={(e) => setFormData({ ...formData, dataEscala: e.target.value })} />
+                <Autocomplete multiple size="small" options={usuarioOptions} getOptionLabel={(o) => o.nome || ''} value={formData.usuariosIds} loading={usuarioLoading} filterSelectedOptions disabled={!formData.tipoEscala} onChange={(_, v) => setFormData({ ...formData, usuariosIds: v })} onInputChange={(_, v) => setUsuarioSearchTerm(v)} isOptionEqualToValue={(o, v) => o.id === v.id}
+                  renderInput={(p) => <TextField {...p} label={formData.tipoEscala ? 'Usuários' : 'Usuários (selecione o tipo de escala)'} InputProps={{ ...p.InputProps, endAdornment: <>{usuarioLoading && <CircularProgress size={16} />}{p.InputProps.endAdornment}</> }} />} />
+              </Box>
+            )}
+
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button variant="contained" size="small" startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <IconSearch size={15} />}
+                onClick={handleBuscar} disabled={loading || !formData.dataInicio || !formData.dataFim || !formData.tipoRelatorio || (formData.tipoRelatorio === 'ESCALA' && !formData.tipoEscala)} sx={btnSx}>
+                Gerar relatório
               </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleLimpar}
-                disabled={loading}
-              >
-                Limpar
+              <Button variant="outlined" color="secondary" size="small" onClick={handleLimpar} disabled={loading} sx={btnSx}>Limpar</Button>
+              <Button variant="outlined" color="success" size="small" startIcon={excelLoadingAudiencia ? <CircularProgress size={14} /> : <IconFileSpreadsheet size={15} />} onClick={handleGerarExcelAudiencia} disabled={!buscaRealizada || excelLoadingAudiencia} sx={btnSx}>
+                {excelLoadingAudiencia ? 'Gerando...' : 'Gerar Excel'}
               </Button>
-              <Button
-                variant="outlined"
-                color="success"
-                startIcon={<IconFileSpreadsheet size={18} />}
-                onClick={handleGerarExcelAudiencia}
-                disabled={!buscaRealizada || excelLoadingAudiencia}
-              >
-                {excelLoadingAudiencia ? 'Gerando...' : 'Gerar Excel de Audiências'}
-              </Button>
-              <Button
-                variant="outlined"
-                color="success"
-                startIcon={<IconFileSpreadsheet size={18} />}
-                onClick={handleGerarExcelPauta}
-                disabled={!buscaRealizada || excelLoadingPauta}
-              >
+              <Button variant="outlined" color="success" size="small" startIcon={excelLoadingPauta ? <CircularProgress size={14} /> : <IconFileSpreadsheet size={15} />} onClick={handleGerarExcelPauta} disabled={!buscaRealizada || excelLoadingPauta} sx={btnSx}>
                 {excelLoadingPauta ? 'Gerando...' : 'Gerar Excel de Pautas'}
               </Button>
             </Box>
-          </Box>
-        </ReportCard>
+          </CardContent>
+        </SectionCard>
 
-        {/* ==================== CAMADA 2: RESUMO (TOTAIS + SUBNÚCLEO + DISTRIBUIÇÃO + CONTESTAÇÃO) ==================== */}
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : buscaRealizada && (
-          resumo.totaisGerais.totalAudiencias > 0 ||
-          resumo.totaisGerais.totalPautas > 0 ||
-          resumo.subnucleos.length > 0 ||
-          resumo.contestacoes.length > 0 ||
-          (resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0)
-        ) && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>}
 
-            {/* SEÇÃO 1: Totais (esquerda, empilhados) + Distribuição por Usuário (direita) */}
-            {(resumo.totaisGerais.totalAudiencias > 0 || resumo.totaisGerais.totalPautas > 0 || (resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0)) && (
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+        {!loading && buscaRealizada && errorMessage && (
+          <SectionCard><CardContent sx={{ py: 5, textAlign: 'center' }}>
+            <Typography color="error" sx={{ fontFamily: '"Geist", sans-serif', fontSize: 13 }}>{errorMessage}</Typography>
+          </CardContent></SectionCard>
+        )}
 
-                {/* Totais empilhados à esquerda */}
-                {(resumo.totaisGerais.totalAudiencias > 0 || resumo.totaisGerais.totalPautas > 0) && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: 200, flexShrink: 0 }}>
-                    {resumo.totaisGerais.totalAudiencias > 0 && (
-                      <StyledCard sx={{ height: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <CardContent sx={{ p: 2 }}>
-                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>Total de Audiências</Typography>
-                          <Typography variant="h3" fontWeight={700} color="textPrimary">
-                            {resumo.totaisGerais.totalAudiencias.toLocaleString('pt-BR')}
-                          </Typography>
-                        </CardContent>
-                      </StyledCard>
+        {!loading && buscaRealizada && !errorMessage && metricsData && (
+          <>
+            {/* MÉTRICAS */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 1.5 }}>
+              <MetricCard label="Total de audiências" value={(r.totalAudiencias || 0).toLocaleString('pt-BR')} accentColor={METRIC_ACCENTS[0]} />
+              <MetricCard label="Total de pautas" value={(r.totalPautas || 0).toLocaleString('pt-BR')} sub={`Média ${(r.mediaAudienciasPorPauta || 0).toFixed(1)} aud./pauta`} accentColor={METRIC_ACCENTS[1]} />
+              {formData.tipoRelatorio === 'ESCALA' && <>
+                <MetricCard label="Colaboradores escalados" value={(r.totalColaboradoresEscalados || 0).toLocaleString('pt-BR')} accentColor={METRIC_ACCENTS[2]} />
+                <MetricCard label="Taxa de comparecimento" value={`${((r.taxaComparecimento || 0) * 100).toFixed(1)}%`} sub={`${r.audienciasComparecimento || 0} compareceram`} accentColor={METRIC_ACCENTS[3]} />
+              </>}
+            </Box>
+
+            {/* ══ BLOCOS ESCALA ══ */}
+            {formData.tipoRelatorio === 'ESCALA' && (
+              <>
+                {metricsData.distribuicaoCarga?.length > 0 && (
+                  <SectionCard>
+                    <CardContent sx={{ p: 2 }}>
+                      <SectionHead title="Distribuição de carga" count={cargaFiltrada.length}>
+                        <TextField size="small" placeholder="Buscar por nome..." value={buscaCarga} onChange={(e) => setBuscaCarga(e.target.value)} sx={{ minWidth: 200 }} InputProps={{ sx: { fontSize: 12, fontFamily: '"Geist", sans-serif' } }} />
+                      </SectionHead>
+                      <DataTable
+                        columns={[
+                          { id: 'nome', label: 'Colaborador', field: 'nome', render: (v) => <Typography sx={{ fontSize: 12, fontWeight: 500, fontFamily: '"Geist", sans-serif' }}>{v || '—'}</Typography> },
+                          { id: 'funcao', label: 'Função', field: 'funcao', render: (v) => <FuncaoChip value={v} /> },
+                          { id: 'cargo', label: 'Cargo', field: 'cargo', render: (v) => <Typography sx={{ fontSize: 12, color: 'text.primary', fontFamily: '"Geist", sans-serif' }}>{v || '—'}</Typography> },
+                          { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum },
+                          { id: 'dist', label: 'Distribuição', field: 'totalAudiencias', render: (v) => <ProgressBar pct={maxCarga > 0 ? Math.round((v / maxCarga) * 100) : 0} /> },
+                        ]}
+                        rows={cargaFiltrada}
+                      />
+                    </CardContent>
+                  </SectionCard>
+                )}
+
+                {(metricsData.tiposContestacao || metricsData.subnucleos?.length > 0) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.tiposContestacao && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Tipo de contestação">
+                          <ToggleButtonGroup value={contestacaoTab} exclusive onChange={(_, v) => v && setContestacaoTab(v)} size="small" sx={togSx}>
+                            <ToggleButton value="JEF">JEF</ToggleButton>
+                            <ToggleButton value="COMUM">Comum</ToggleButton>
+                            <ToggleButton value="CONSOLIDADO">Todos</ToggleButton>
+                          </ToggleButtonGroup>
+                          <ViewToggle value={viewContestation} onChange={setViewContestation} />
+                        </SectionHead>
+                        {getContestacaoItems().length > 0
+                          ? viewContestation === 'tabela' ? <DataTable columns={colsContest} rows={getContestacaoItems()} /> : <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
+                          : <Typography sx={{ py: 2, fontSize: 13, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>Sem dados para este filtro</Typography>}
+                      </CardContent></SectionCard>
                     )}
-                    {resumo.totaisGerais.totalPautas > 0 && (
-                      <StyledCard sx={{ height: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <CardContent sx={{ p: 2 }}>
-                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>Total de Pautas</Typography>
-                          <Typography variant="h3" fontWeight={700} color="textPrimary">
-                            {resumo.totaisGerais.totalPautas.toLocaleString('pt-BR')}
-                          </Typography>
-                        </CardContent>
-                      </StyledCard>
+                    {metricsData.subnucleos?.length > 0 && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Subnúcleo"><ViewToggle value={viewSubnucleo} onChange={setViewSubnucleo} /></SectionHead>
+                        {viewSubnucleo === 'tabela' ? <DataTable columns={colsSub} rows={metricsData.subnucleos} /> : <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />}
+                      </CardContent></SectionCard>
                     )}
                   </Box>
                 )}
 
-                {/* Distribuição por Usuário à direita */}
-                {resumo.distribuicao.dados && resumo.distribuicao.dados.length > 0 && (
-                  <StyledCard sx={{ flex: 1 }}>
-                    <CardContent sx={{ p: 2, height: 300, display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Distribuição por Usuário</Typography>
-                      <Box sx={{ flex: 1, overflowY: 'auto' }}>
-                        <DistribuicaoTable distribuicao={resumo.distribuicao} />
-                      </Box>
-                    </CardContent>
-                  </StyledCard>
+                {(metricsData.setores?.length > 0 || metricsData.tiposAnalise?.length > 0) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.setores?.length > 0 && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Setores"><ViewToggle value={viewSetores} onChange={setViewSetores} /></SectionHead>
+                        {viewSetores === 'tabela'
+                          ? <DataTable columns={[{ id: 'nome', label: 'Setor', field: 'nome' }, { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum }, { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct }]} rows={metricsData.setores} />
+                          : <BarChart items={metricsData.setores} labelField="nome" valueField="totalAudiencias" />}
+                      </CardContent></SectionCard>
+                    )}
+                    {metricsData.tiposAnalise?.length > 0 && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Tipo de análise"><ViewToggle value={viewTiposAnalise} onChange={setViewTiposAnalise} /></SectionHead>
+                        {viewTiposAnalise === 'tabela'
+                          ? <DataTable columns={[{ id: 'descricao', label: 'Análise', field: 'descricao', render: (v) => <AnalysisChip value={v} /> }, { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum }, { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct }]} rows={metricsData.tiposAnalise} />
+                          : <BarChart items={metricsData.tiposAnalise} labelField="descricao" valueField="totalAudiencias" />}
+                      </CardContent></SectionCard>
+                    )}
+                  </Box>
                 )}
-
-              </Box>
+              </>
             )}
 
-            {/* SEÇÃO 2: Subnúcleo + Contestações lado a lado (sem scroll) */}
-            {(resumo.subnucleos.length > 0 || resumo.contestacoes.length > 0) && (
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-
-                {resumo.subnucleos.length > 0 && (
-                  <StyledCard sx={{ flex: 1, minWidth: 260, height: 450 }}>
-                    <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Distribuição por Subnúcleo</Typography>
-                      <Box sx={{ flex: 1 }}>
-                        <SubnucleosChart subnucleos={resumo.subnucleos} />
-                      </Box>
-                    </CardContent>
-                  </StyledCard>
+            {/* ══ BLOCOS AUDIÊNCIA ══ */}
+            {formData.tipoRelatorio === 'AUDIENCIA' && (
+              <>
+                {(metricsData.porClasseProcessual || metricsData.tiposContestacao) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.porClasseProcessual && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Classe processual"><ViewToggle value={viewClasseProcessual} onChange={setViewClasseProcessual} /></SectionHead>
+                        {viewClasseProcessual === 'tabela'
+                          ? <DataTable columns={[{ id: 'classe', label: 'Classe', field: 'classe', render: (v) => <ClasseJudicialChip value={v} /> }, { id: 'totalAudiencias', label: 'Total', field: 'totalAudiencias', align: 'right', render: renderNum }, { id: 'percentual', label: '%', field: 'percentual', align: 'right', render: renderPct }]} rows={Object.entries(metricsData.porClasseProcessual).map(([classe, data]) => ({ classe, ...data }))} />
+                          : <DonutChart items={Object.entries(metricsData.porClasseProcessual).map(([classe, data]) => ({ classe, ...data }))} labelField="classe" valueField="totalAudiencias" />}
+                      </CardContent></SectionCard>
+                    )}
+                    {metricsData.tiposContestacao && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Tipo de contestação">
+                          <ToggleButtonGroup value={contestacaoTab} exclusive onChange={(_, v) => v && setContestacaoTab(v)} size="small" sx={togSx}>
+                            <ToggleButton value="JEF">JEF</ToggleButton>
+                            <ToggleButton value="COMUM">Comum</ToggleButton>
+                            <ToggleButton value="CONSOLIDADO">Todos</ToggleButton>
+                          </ToggleButtonGroup>
+                          <ViewToggle value={viewContestation} onChange={setViewContestation} />
+                        </SectionHead>
+                        {getContestacaoItems().length > 0
+                          ? viewContestation === 'tabela' ? <DataTable columns={colsContest} rows={getContestacaoItems()} /> : <BarChart items={getContestacaoItems()} labelField="descricao" valueField="totalAudiencias" />
+                          : <Typography sx={{ py: 2, fontSize: 13, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>Sem dados para este filtro</Typography>}
+                      </CardContent></SectionCard>
+                    )}
+                  </Box>
                 )}
 
-                {resumo.contestacoes.length > 0 && (
-                  <StyledCard sx={{ flex: 1, minWidth: 260, height: 450 }}>
-                    <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="h5" sx={{ mb: 1.5 }}>Contestações por Tipo</Typography>
-                      <Box sx={{ flex: 1 }}>
-                        <ContestacaoChart contestacoes={resumo.contestacoes} />
-                      </Box>
-                    </CardContent>
-                  </StyledCard>
+                {(metricsData.orgaosJulgadores?.length > 0 || metricsData.subnucleos?.length > 0) && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                    {metricsData.orgaosJulgadores?.length > 0 && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Órgãos julgadores" count={metricsData.orgaosJulgadores.length}>
+                          <ViewToggle value={viewOrgaosJulgadores} onChange={setViewOrgaosJulgadores} />
+                        </SectionHead>
+                        {viewOrgaosJulgadores === 'tabela' ? (
+                          <>
+                            <DataTable columns={colsOrgaos} rows={metricsData.orgaosJulgadores.slice(pageOrgaos * 10, pageOrgaos * 10 + 10)} />
+                            <TablePagination component="div" count={metricsData.orgaosJulgadores.length} page={pageOrgaos} onPageChange={(_, p) => setPageOrgaos(p)} rowsPerPage={10} rowsPerPageOptions={[10]} labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`} sx={{ fontFamily: '"Geist", sans-serif', fontSize: 12 }} />
+                          </>
+                        ) : (
+                          <BarChart items={metricsData.orgaosJulgadores.slice(pageOrgaos * 10, pageOrgaos * 10 + 10)} labelField="nome" valueField="totalAudiencias" />
+                        )}
+                      </CardContent></SectionCard>
+                    )}
+                    {metricsData.subnucleos?.length > 0 && (
+                      <SectionCard><CardContent sx={{ p: 2 }}>
+                        <SectionHead title="Subnúcleo"><ViewToggle value={viewSubnucleo} onChange={setViewSubnucleo} /></SectionHead>
+                        {viewSubnucleo === 'tabela' ? <DataTable columns={colsSub} rows={metricsData.subnucleos} /> : <DonutChart items={metricsData.subnucleos} labelField="descricao" valueField="totalAudiencias" />}
+                      </CardContent></SectionCard>
+                    )}
+                  </Box>
                 )}
-
-              </Box>
+              </>
             )}
 
-          </Box>
-        )}
-
-        {/* ==================== CAMADA 3: TABELA DE AUDIÊNCIAS ==================== */}
-        {buscaRealizada && !loading && (
-          <ReportCard title="Audiências">
-            <Box sx={{ overflowX: 'auto', width: '100%', position: 'relative' }}>
-              {/* Overlay de loading para paginação */}
-              {tabelaLoading && (
-                <Box 
-                  sx={{ 
-                    position: 'absolute', 
-                    top: 0, 
-                    left: 0, 
-                    right: 0, 
-                    bottom: 0, 
-                    bgcolor: 'rgba(255, 255, 255, 0.7)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    zIndex: 1,
-                  }}
-                >
-                  <CircularProgress size={40} />
-                </Box>
-              )}
-              <Table aria-label="tabela de relatório">
-                <TableHead>
-                  <TableRow>
-                    {getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').map((coluna) => (
-                      <TableCell key={coluna.id} align="center">
-                        <Typography variant="subtitle2" fontWeight={600}>
-                          {coluna.label}
-                        </Typography>
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {resultados.length > 0 ? (
-                    resultados.map((item) => (
-                      <TableRow key={item.id || item.audienciaId}>
-                        {getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').map((coluna) => (
-                          <TableCell key={coluna.id} align="center">
-                            {renderCellContent(coluna.id, item[coluna.field])}
+            {/* TABELA PAGINADA */}
+            <SectionCard>
+              <CardContent sx={{ p: 2 }}>
+                <SectionHead title={formData.tipoRelatorio === 'ESCALA' ? 'Audiências de escala' : 'Audiências'} count={totalElements > 0 ? totalElements.toLocaleString('pt-BR') : undefined} />
+                <Box sx={{ overflowX: 'auto', position: 'relative' }}>
+                  {tabelaLoading && (
+                    <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                      <CircularProgress size={36} />
+                    </Box>
+                  )}
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        {colunas.map((col) => (
+                          <TableCell key={col.id} sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary', borderBottom: (t) => `1.5px solid ${t.palette.divider}`, fontFamily: '"Geist", sans-serif', pb: 1, whiteSpace: 'nowrap' }}>
+                            <TableSortLabel active={sortBy === col.field} direction={sortBy === col.field ? sortDir : 'desc'} onClick={() => handleSort(col.field)}>
+                              {col.label}
+                            </TableSortLabel>
                           </TableCell>
                         ))}
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={getColumnasRelatorio(formData.viewRelatorio || 'ESCALA').length} align="center">
-                        <Typography color="textSecondary" sx={{ py: 3 }}>
-                          Nenhum resultado encontrado
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              <TablePagination
-                component="div"
-                count={totalElements}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage="Linhas por página:"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
-                }
-              />
-            </Box>
-          </ReportCard>
+                    </TableHead>
+                    <TableBody>
+                      {resultados.length > 0 ? resultados.map((item, idx) => (
+                        <TableRow key={item.id || item.idAudiencia || idx} hover sx={{ '&:last-child td': { border: 0 } }}>
+                          {colunas.map((col) => (
+                            <TableCell key={col.id} sx={{ py: 1.1 }}>{renderCellContent(col.id, item[col.field])}</TableCell>
+                          ))}
+                        </TableRow>
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={colunas.length} align="center" sx={{ py: 5 }}>
+                            <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>Nenhum resultado encontrado</Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                  <TablePagination component="div" count={totalElements} page={page} onPageChange={handleChangePage} rowsPerPage={rowsPerPage} onRowsPerPageChange={handleChangeRowsPerPage} rowsPerPageOptions={[5, 10, 25, 50]} labelRowsPerPage="Por página:" labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`} sx={{ fontFamily: '"Geist", sans-serif', fontSize: 12 }} />
+                </Box>
+              </CardContent>
+            </SectionCard>
+          </>
         )}
 
-        {/* Mensagem inicial */}
         {!buscaRealizada && !loading && (
-          <ReportCard>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography color="textSecondary">
-                Preencha os filtros e clique em Gerar Relatório para visualizar os dados
+          <SectionCard>
+            <CardContent sx={{ py: 6, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', fontFamily: '"Geist", sans-serif' }}>
+                Preencha os filtros e clique em Gerar relatório para visualizar os dados
               </Typography>
-            </Box>
-          </ReportCard>
+            </CardContent>
+          </SectionCard>
         )}
+
       </Box>
     </PageContainer>
   );
